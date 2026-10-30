@@ -1,0 +1,10 @@
+{
+  "id": "uc2",
+  "directory": "Unreal Championship 2 - The Liandri Conflict",
+  "executable": "default.xbe",
+  "sha256": "13318928c8e93816933ec9b7a82322c9d5f1c4657816679a05fa5be4c9083570",
+  "entry": "0x0026867f",
+  "target": "x86_64-linux",
+  "status": "static analysis only",
+  "section_policy": "Determine reachable code in every section; never treat section executable flags as proof."
+}

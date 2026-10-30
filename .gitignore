@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.env/
+.direnv/
+build/
+reports/
+third_party/
+*.xbe
+*.iso

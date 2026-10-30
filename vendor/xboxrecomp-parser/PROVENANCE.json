@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/sp00nznet/xboxrecomp",
+  "revision": "f0f8a461496a4f23d9b0aeaa284b8d70ba7ab82b",
+  "source_path": "tools/xbe_parser/xbe_parser.py",
+  "scope": "Single standalone upstream parser; NOT a complete runtime checkout.",
+  "retrieved": "2026-10-29",
+  "sha256": "b20282945936d70d38e2268cffa40fd38532f4cf15a35126cd040dd4f7f44870"
+}
