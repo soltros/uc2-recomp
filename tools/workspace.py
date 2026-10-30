@@ -166,10 +166,10 @@ def packages(folder):
 
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('command',choices=['manifest','verify','xbe','packages','baseline']);ap.add_argument('--game-root',type=Path,default=DEFAULT_ROOT);ap.add_argument('--title',choices=['all',*TITLES],default='all');ap.add_argument('--replace-manifest',action='store_true',help='explicitly replace baseline hashes')
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('command',choices=['manifest','verify','xbe','packages','baseline']);ap.add_argument('--game-root',type=Path,default=DEFAULT_ROOT);ap.add_argument('--game-dir',type=Path,help='use this extracted title directory directly');ap.add_argument('--title',choices=['all',*TITLES],default='all');ap.add_argument('--replace-manifest',action='store_true',help='explicitly replace baseline hashes')
     a=ap.parse_args();keys=list(TITLES) if a.title=='all' else [a.title]
     for key in keys:
-        folder=a.game_root/TITLES[key][0]
+        folder=a.game_dir if a.game_dir else a.game_root/TITLES[key][0]
         if not folder.is_dir():raise ValueError(f'missing input directory: {folder}')
         path=PROJECT/'manifest.json'
         if a.command in ('manifest','verify','baseline'):
