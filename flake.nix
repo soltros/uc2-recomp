@@ -9,7 +9,9 @@
       packages = with pkgs; [
         git cmake ninja pkg-config clang gdb binutils
         (python3.withPackages (p: [ p.capstone p.pytest ]))
-        SDL2 libepoxy libGL openssl ffmpeg
+        SDL2 libepoxy libGL
+        vulkan-headers vulkan-loader vulkan-tools vulkan-validation-layers shaderc
+        openssl ffmpeg
       ];
     };
   };
