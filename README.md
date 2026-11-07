@@ -28,11 +28,33 @@ your own game files locally under `game/`.
 - The Linux/OpenGL runtime and generated game code compile and link. Building
   with the host GCC 16.2 toolchain resolved an SDL2-compat/glibc version
   mismatch seen with GCC 15.2.
-- First boot succeeds through XBE loading and startup content reads when
-  `RECOMP_EXT_VMA=1` is enabled. Without it, the title walks the free address
-  space one page at a time. With it, startup reaches a wait on an event after
-  loading `D:\Startup\UC2Startup.xpr`; the event is not signaled yet, so the
-  game has not reached its first rendered frame.
+- The POSIX host initializes xboxrecomp's optional MCPX APU model when
+  `RECOMP_AC97_READY=1` is set. This lets DirectSound initialize; without it,
+  DirectSound returns `DSERR_NODRIVER` and the title skips D3D setup.
+- First visible output is confirmed: with the xboxrecomp pushbuffer executor
+  enabled, the SDL/OpenGL window displays the game's splash screen. The title
+  opens `D:\Startup\UC2Startup.xpr`, `D:\Movies\UC2_Logos.xmv`, and
+  `D:\System\Localization\int\Core.int`; the GPU log records two flips,
+  a surface clear, and a rasterized draw. It then stops submitting new GPU
+  work, with the pushbuffer PUT and GET pointers equal. A 20-second local
+  watchdog confirms the guest stops inside `KeDelayExecutionThread`, called
+  from guest VA `0x0001A2F6` with timeout `0xFFFFFED8` (a roughly 49-day delay).
+  Before that wait it resolves startup data through function `0x00260B87`.
+  The window and APU shut down cleanly. Gameplay, controls, audio quality, and
+  sustained rendering still need validation.
+- With the opt-in `RECOMP_DELAY_CAP_MS=1` diagnostic setting and paced
+  vblank enabled, a local headless run advanced past that wait and produced
+  13,528 flips and clears over 20 seconds. It later entered another long
+  delay. This confirms the wait is gating startup progress, but the visible
+  result and control response still need a user-window run.
+- The POSIX host now watches for the title's D3D semaphore and registers its
+  guest address with xboxrecomp's pushbuffer executor. This is intended to let
+  the executor publish `BACK_END_WRITE_SEMAPHORE_RELEASE` progress where the
+  title waits. The latest run logged target `0x80267000` and advanced beyond
+  the earlier queue stall to two flips and a surface clear. Closing the window
+  now shuts down SDL audio and the APU cleanly. No watchdog or input diagnostics
+  were enabled in that run, so sustained rendering and controls remain
+  unverified.
 
 ## Requirements
 
@@ -73,16 +95,40 @@ cmake -S "$UC2" -B "$UC2/build" -DXBOXRECOMP_DIR="$XBOXRECOMP_DIR"
 cmake --build "$UC2/build" --parallel 2
 ```
 
-Run with the extended guest address tracker enabled:
+Run with the Xbox memory extension, APU model, pushbuffer executor, and
+framebuffer window enabled:
 
 ```sh
 cd "$UC2"
-RECOMP_EXT_VMA=1 RECOMP_FB_WINDOW=1 ./build/uc2_recomp
+RECOMP_AC97_READY=1 RECOMP_EXT_VMA=1 RECOMP_PB_EXEC=1 RECOMP_FB_WINDOW=1 \
+RECOMP_KEYBOARD=1 ./build/uc2_recomp
 ```
 
 The Linux framebuffer presenter uses SDL, while the toolkit's D3D8
 compatibility layer targets OpenGL. `RECOMP_FB_WINDOW=1` opens the toolkit's
 host window; omit it to run headless.
+
+`RECOMP_KEYBOARD=1` enables the toolkit's keyboard controller mapping in the
+focused window (Enter maps to Xbox START). Keyboard input was disabled in the
+first splash-screen run, so menu navigation has not yet been checked.
+
+Run the diagnostic launcher to capture input state and the guest watchdog in a
+timestamped local log. The latest user run showed two flips and an idle GPU
+queue but did not include watchdog or input diagnostics:
+
+```sh
+./scripts/run-diagnostic.sh
+```
+
+It defaults to a 15-second watchdog. Set `RECOMP_WATCHDOG_SECS=60` before
+launching to allow more time; the watchdog prints guest state and exits with
+status 3. The launcher enables keyboard input, input diagnostics, and key
+tracing.
+To observe startup past the guest's 49-day sleep, run
+`RECOMP_DELAY_CAP_MS=1 RECOMP_VBLANK=paced RECOMP_WATCHDOG_SECS=300 ./scripts/run-diagnostic.sh`.
+The opt-in cap is off by default and the runtime logs when it shortens a
+delay. With the window focused, press Enter to test START; the launcher logs
+key events and controller state.
 
 The `analysis/`, `src/recomp/gen/`, and `build/` directories are local outputs
 and are not committed.
