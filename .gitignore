@@ -31,3 +31,6 @@
 
 # Per-title analysis output can contain large derived data.
 *_analysis.json
+
+# Local runtime diagnostics.
+/xbox_kernel.log

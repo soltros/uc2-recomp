@@ -25,9 +25,14 @@ your own game files locally under `game/`.
   `thiscall` functions.
 - xboxrecomp generated 13,943 functions into 56 local C chunks, plus the
   dispatch table and register header. These outputs are ignored by Git.
-- The Linux/OpenGL runtime and generated game code compile and link. The first
-  boot currently stops during SDL3 loading because the installed SDL2
-  compatibility library and executable resolve different glibc versions.
+- The Linux/OpenGL runtime and generated game code compile and link. Building
+  with the host GCC 16.2 toolchain resolved an SDL2-compat/glibc version
+  mismatch seen with GCC 15.2.
+- First boot succeeds through XBE loading and startup content reads when
+  `RECOMP_EXT_VMA=1` is enabled. Without it, the title walks the free address
+  space one page at a time. With it, startup reaches a wait on an event after
+  loading `D:\Startup\UC2Startup.xpr`; the event is not signaled yet, so the
+  game has not reached its first rendered frame.
 
 ## Requirements
 
@@ -67,6 +72,17 @@ Then configure and build the Linux executable:
 cmake -S "$UC2" -B "$UC2/build" -DXBOXRECOMP_DIR="$XBOXRECOMP_DIR"
 cmake --build "$UC2/build" --parallel 2
 ```
+
+Run with the extended guest address tracker enabled:
+
+```sh
+cd "$UC2"
+RECOMP_EXT_VMA=1 RECOMP_FB_WINDOW=1 ./build/uc2_recomp
+```
+
+The Linux framebuffer presenter uses SDL, while the toolkit's D3D8
+compatibility layer targets OpenGL. `RECOMP_FB_WINDOW=1` opens the toolkit's
+host window; omit it to run headless.
 
 The `analysis/`, `src/recomp/gen/`, and `build/` directories are local outputs
 and are not committed.
