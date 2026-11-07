@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>   /* ptrdiff_t */
+#include "recomp_types.h"
 
 /* ── ICALL trace ring buffer ───────────────────────────────── */
 
@@ -38,16 +39,7 @@
  *   xbox_memory_layout.obj : error LNK2005: g_icall_count already defined
  *                            in recomp_manual.obj
  */
-extern volatile uint32_t g_icall_trace[16];
-extern volatile uint32_t g_icall_trace_idx;
-extern volatile uint64_t g_icall_count;
-
 typedef void (*recomp_func_t)(void);
-
-/* ── Register state (defined in xbox_memory_layout.c) ──────── */
-
-extern uint32_t g_eax;
-extern ptrdiff_t g_xbox_mem_offset;
 
 /* ── Manual function overrides ─────────────────────────────── */
 

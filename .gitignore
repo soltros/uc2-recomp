@@ -1,6 +1,8 @@
 # Original game data is provided locally by the owner and must not be committed.
-/game/
+/game
 *.xbe
+*.bin
+*.blob
 *.iso
 *.xiso
 *.xbox
@@ -16,6 +18,8 @@
 # Recompiler outputs and local build products.
 /src/recomp/gen/
 /build/
+/build-*/
+/analysis/
 /CMakeFiles/
 /CMakeCache.txt
 *.o

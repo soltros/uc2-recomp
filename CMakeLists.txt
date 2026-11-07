@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # ============================================================================
-# YOUR_GAME_NAME - Static Recompilation
+# Unreal Championship 2 - Linux Static Recompilation
 #
 # Copy this template to your game project root and customize:
 #   1. Change the project name below
@@ -10,16 +10,10 @@ cmake_minimum_required(VERSION 3.20)
 #   4. Add any game-specific compile definitions or link libraries
 # ============================================================================
 
-project(your_game_recomp C)
+project(uc2_recomp C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# Common definitions
-add_compile_definitions(
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-)
 
 # ── xboxrecomp toolkit ──────────────────────────────────────────
 #
@@ -33,7 +27,10 @@ add_compile_definitions(
 set(XBOXRECOMP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../xboxrecomp" CACHE PATH
     "Path to the xboxrecomp toolkit root directory")
 
-# Add xboxrecomp as a subdirectory -- this builds all 6 runtime libraries
+# This project uses the Linux/POSIX backends from xboxrecomp.
+set(XBOXRECOMP_BUILD_TESTS OFF CACHE BOOL "Do not build toolkit tests in the game project")
+
+# Add xboxrecomp as a subdirectory -- this builds the runtime libraries
 # and provides the 'xboxrecomp' umbrella target to link against.
 add_subdirectory(${XBOXRECOMP_DIR} ${CMAKE_BINARY_DIR}/xboxrecomp)
 
@@ -41,7 +38,7 @@ add_subdirectory(${XBOXRECOMP_DIR} ${CMAKE_BINARY_DIR}/xboxrecomp)
 
 # Collect generated recompiled code.
 # The recomp pipeline outputs files into src/recomp/gen/.
-# With --split 1000, you get gen_0000.c, gen_0001.c, etc.
+# With --split 250, you get recomp_0000.c, recomp_0001.c, etc.
 # CONFIGURE_DEPENDS so re-running the recompiler picks up added/removed files
 # without a manual re-configure. A plain GLOB is evaluated once at configure
 # time, so a newly generated file (an extra chunk, recomp_stubs_unresolved.c)
@@ -50,54 +47,26 @@ file(GLOB RECOMP_GEN_SOURCES CONFIGURE_DEPENDS "src/recomp/gen/*.c")
 
 # Core game sources
 set(GAME_SOURCES
-    src/main.c
+    src/main_posix.c
     src/recomp_manual.c
     # Add game-specific sources here, e.g.:
     # src/asset_loader.c
     # src/custom_renderer.c
 )
 
-# The recomp pipeline also generates a dispatch header and function declarations.
-# These are included by the generated .c files:
-#   src/recomp/gen/recomp_funcs.h    - extern declarations for all recompiled functions
-#   src/recomp/recomp_dispatch.h     - binary search dispatch table
-#   src/recomp/recomp_types.h        - register model, ICALL macros, MEM helpers
+# The recomp pipeline also generates recomp_types.h beside the generated code.
+add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${RECOMP_GEN_SOURCES})
 
-add_executable(${PROJECT_NAME} WIN32
-    ${GAME_SOURCES}
-    ${RECOMP_GEN_SOURCES}
-)
-
-# Link against the xboxrecomp umbrella target (all 6 runtime libraries)
+# Link against the xboxrecomp umbrella target and its runtime libraries.
 target_link_libraries(${PROJECT_NAME} PRIVATE xboxrecomp)
 
 # Include paths for generated recomp headers
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/recomp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recomp/gen
     ${XBOXRECOMP_DIR}/include
 )
-
-# Windows SDK libraries needed at link time
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    d3d11
-    dxgi
-    dxguid
-    $<IF:$<BOOL:${MINGW}>,xinput1_4,xinput>   # see src/input/CMakeLists.txt
-    winmm
-    # Lets the fault handler resolve the host RIP back to the generated
-    # function's symbol, i.e. to the guest function that faulted.
-    dbghelp
-)
-
-# MSVC-specific: large address aware, increase section limit for big generated files
-if(MSVC)
-    target_link_options(${PROJECT_NAME} PRIVATE
-        /LARGEADDRESSAWARE
-    )
-    # The generated code files can be very large. Increase object file section limit.
-    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
-endif()
 
 # ── Game-specific additions ─────────────────────────────────────
 #
