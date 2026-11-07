@@ -1,0 +1,29 @@
+# Original game data is provided locally by the owner and must not be committed.
+/game/
+*.xbe
+*.iso
+*.xiso
+*.xbox
+*.xpr
+*.xmv
+*.xwb
+*.xsb
+*.uax
+*.utx
+*.usx
+*.unr
+
+# Recompiler outputs and local build products.
+/src/recomp/gen/
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+*.o
+*.a
+*.so
+*.exe
+*.dll
+*.pdb
+
+# Per-title analysis output can contain large derived data.
+*_analysis.json
