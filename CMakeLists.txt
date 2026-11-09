@@ -12,6 +12,15 @@ cmake_minimum_required(VERSION 3.20)
 
 project(uc2_recomp C)
 
+# Recompiled guest code is CPU intensive. Default single-configuration builds
+# to Release so a plain configure/build does not run the generated code without
+# optimization. Callers can still select Debug explicitly.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+        Debug Release RelWithDebInfo MinSizeRel)
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
