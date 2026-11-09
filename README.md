@@ -112,9 +112,11 @@ host window; omit it to run headless.
 focused window (Enter maps to Xbox START). Keyboard input was disabled in the
 first splash-screen run, so menu navigation has not yet been checked.
 
-Run the diagnostic launcher to capture input state and the guest watchdog in a
-timestamped local log. The latest user run showed two flips and an idle GPU
-queue but did not include watchdog or input diagnostics:
+Run the diagnostic launcher to capture input state, the guest watchdog,
+texture registers, and periodic snapshots of textures used by the renderer.
+Logs and texture BMPs are kept under the ignored `diagnostic_logs/` directory.
+The latest user run reached 203 flips at about 6 FPS, then stopped advancing;
+the snapshots should show whether the movie texture continues changing:
 
 ```sh
 ./scripts/run-diagnostic.sh
@@ -129,6 +131,10 @@ To observe startup past the guest's 49-day sleep, run
 The opt-in cap is off by default and the runtime logs when it shortens a
 delay. With the window focused, press Enter to test START; the launcher logs
 key events and controller state.
+
+The launcher captures every 30th bind of an already-seen texture. Set
+`RECOMP_TEX_DUMP_EVERY=60` for fewer snapshots, or set
+`RECOMP_TEX_DUMP_EVERY=0` to capture only the first use of each texture.
 
 The `analysis/`, `src/recomp/gen/`, and `build/` directories are local outputs
 and are not committed.
