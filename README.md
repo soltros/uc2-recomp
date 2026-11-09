@@ -25,36 +25,28 @@ your own game files locally under `game/`.
   `thiscall` functions.
 - xboxrecomp generated 13,943 functions into 56 local C chunks, plus the
   dispatch table and register header. These outputs are ignored by Git.
-- The Linux/OpenGL runtime and generated game code compile and link. Building
-  with the host GCC 16.2 toolchain resolved an SDL2-compat/glibc version
-  mismatch seen with GCC 15.2.
+- The Linux/OpenGL runtime and generated game code compile and link. Plain
+  single-configuration CMake builds now default to `Release`; generated guest
+  code is CPU-intensive, and an unoptimized build advanced through startup too
+  slowly.
 - The POSIX host initializes xboxrecomp's optional MCPX APU model when
   `RECOMP_AC97_READY=1` is set. This lets DirectSound initialize; without it,
   DirectSound returns `DSERR_NODRIVER` and the title skips D3D setup.
-- First visible output is confirmed: with the xboxrecomp pushbuffer executor
-  enabled, the SDL/OpenGL window displays the game's splash screen. The title
-  opens `D:\Startup\UC2Startup.xpr`, `D:\Movies\UC2_Logos.xmv`, and
-  `D:\System\Localization\int\Core.int`; the GPU log records two flips,
-  a surface clear, and a rasterized draw. It then stops submitting new GPU
-  work, with the pushbuffer PUT and GET pointers equal. A 20-second local
-  watchdog confirms the guest stops inside `KeDelayExecutionThread`, called
-  from guest VA `0x0001A2F6` with timeout `0xFFFFFED8` (a roughly 49-day delay).
-  Before that wait it resolves startup data through function `0x00260B87`.
-  The window and APU shut down cleanly. Gameplay, controls, audio quality, and
-  sustained rendering still need validation.
-- With the opt-in `RECOMP_DELAY_CAP_MS=1` diagnostic setting and paced
-  vblank enabled, a local headless run advanced past that wait and produced
-  13,528 flips and clears over 20 seconds. It later entered another long
-  delay. This confirms the wait is gating startup progress, but the visible
-  result and control response still need a user-window run.
-- The POSIX host now watches for the title's D3D semaphore and registers its
-  guest address with xboxrecomp's pushbuffer executor. This is intended to let
-  the executor publish `BACK_END_WRITE_SEMAPHORE_RELEASE` progress where the
-  title waits. The latest run logged target `0x80267000` and advanced beyond
-  the earlier queue stall to two flips and a surface clear. Closing the window
-  now shuts down SDL audio and the APU cleanly. No watchdog or input diagnostics
-  were enabled in that run, so sustained rendering and controls remain
-  unverified.
+- An optimized headless run loaded `D:\Movies\UC2_Logos.xmv`,
+  `D:\Textures\Movies\UI_LoadingMovie.xmv`, and
+  `Z:\XboxMaps\Menu.lin`. Texture captures include the teal UC2 loading
+  animation, and the GPU submitted over 5,600 draws in 90 seconds without a
+  guest fault. Earlier windowed runs displayed the studio logos. A windowed
+  menu/gameplay run and controller response still need validation.
+- Release mode exposed an unsupported `F7 TEST` instruction in xboxrecomp's
+  POSIX x86-64 MMIO decoder. The decoder fix and focused test are in
+  [`soltros/xboxrecomp` commit d832e03](https://github.com/soltros/xboxrecomp/commit/d832e03).
+  The test passes with `ctest --test-dir /tmp/mmio-decode-x86_64-build
+  --output-on-failure`.
+- The diagnostic launcher enables paced vblank and caps guest delays at 1 ms
+  so startup can pass the title's roughly 49-day sleep. Set
+  `RECOMP_WATCHDOG_SECS=0` explicitly when launching from a shell that may
+  already export a watchdog timeout.
 
 ## Requirements
 
@@ -94,6 +86,11 @@ Then configure and build the Linux executable:
 cmake -S "$UC2" -B "$UC2/build" -DXBOXRECOMP_DIR="$XBOXRECOMP_DIR"
 cmake --build "$UC2/build" --parallel 2
 ```
+
+Single-configuration builds default to `Release` because the generated guest
+code performs CPU-intensive work such as XMV video decoding. Select
+`-DCMAKE_BUILD_TYPE=Debug` explicitly when debugging the host or generated
+code.
 
 Run with the Xbox memory extension, APU model, pushbuffer executor, and
 framebuffer window enabled:
