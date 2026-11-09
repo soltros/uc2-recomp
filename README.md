@@ -125,10 +125,10 @@ the snapshots should show whether the movie texture continues changing:
 The launcher enables keyboard input, input diagnostics, and key tracing. It
 defaults to paced 60 Hz vblank and caps guest delays at 1 ms so startup can
 advance past the title's roughly 49-day sleep. The runtime logs each shortened
-delay. The watchdog defaults to 15 seconds; set `RECOMP_WATCHDOG_SECS=300`
-before launching to allow more time. If it expires, it prints guest state and
-exits with status 3. With the window focused, press Enter to test START; the
-launcher logs key events and controller state. Override `RECOMP_VBLANK` or
+delay. The watchdog is disabled by default so the game can keep running. Set
+`RECOMP_WATCHDOG_SECS=60` to capture guest state and exit with status 3 after
+60 seconds. With the window focused, press Enter to test START; the launcher
+logs key events and controller state. Override `RECOMP_VBLANK` or
 `RECOMP_DELAY_CAP_MS` to change these diagnostic defaults.
 
 The launcher captures every 30th bind of an already-seen texture. Set
