@@ -122,15 +122,14 @@ the snapshots should show whether the movie texture continues changing:
 ./scripts/run-diagnostic.sh
 ```
 
-It defaults to a 15-second watchdog. Set `RECOMP_WATCHDOG_SECS=60` before
-launching to allow more time; the watchdog prints guest state and exits with
-status 3. The launcher enables keyboard input, input diagnostics, and key
-tracing.
-To observe startup past the guest's 49-day sleep, run
-`RECOMP_DELAY_CAP_MS=1 RECOMP_VBLANK=paced RECOMP_WATCHDOG_SECS=300 ./scripts/run-diagnostic.sh`.
-The opt-in cap is off by default and the runtime logs when it shortens a
-delay. With the window focused, press Enter to test START; the launcher logs
-key events and controller state.
+The launcher enables keyboard input, input diagnostics, and key tracing. It
+defaults to paced 60 Hz vblank and caps guest delays at 1 ms so startup can
+advance past the title's roughly 49-day sleep. The runtime logs each shortened
+delay. The watchdog defaults to 15 seconds; set `RECOMP_WATCHDOG_SECS=300`
+before launching to allow more time. If it expires, it prints guest state and
+exits with status 3. With the window focused, press Enter to test START; the
+launcher logs key events and controller state. Override `RECOMP_VBLANK` or
+`RECOMP_DELAY_CAP_MS` to change these diagnostic defaults.
 
 The launcher captures every 30th bind of an already-seen texture. Set
 `RECOMP_TEX_DUMP_EVERY=60` for fewer snapshots, or set
