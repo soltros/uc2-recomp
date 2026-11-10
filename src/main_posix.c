@@ -237,5 +237,9 @@ int main(void)
      * retain SDL's CPU-copy presenter for comparison. */
     if (getenv("RECOMP_FB_WINDOW") && !getenv("RECOMP_GL_PRESENT"))
         setenv("RECOMP_GL_PRESENT", "1", 0);
+    /* The toolkit's GP/EP DSP is a passthrough HLE. Soft limiting prevents
+     * its multi-mixbin fallback from hard-clipping dense UC2 effects. */
+    if (!getenv("RECOMP_APU_DSP_SOFT_LIMIT"))
+        setenv("RECOMP_APU_DSP_SOFT_LIMIT", "1", 0);
     return xbox_HostWindowMain(boot_and_run);
 }
