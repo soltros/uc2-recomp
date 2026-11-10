@@ -260,14 +260,14 @@ XOnlineCleanup                                       = 0x326AB7
 XOnlineStartup                                       = 0x3269BA
 
 [data]
-D3D_DeferredTextureState    = 0
+D3D_DeferredTextureState    = 0x3911D8
 D3D_Device                  = 0x3913E0
-D3D_DirtyFlags              = 0
-D3D_IndexData               = 0
+D3D_DirtyFlags              = 0x393890
+D3D_IndexData               = 0x394738
 D3D_pDevice                 = 0x393888
-D3D_RenderState             = 0
+D3D_RenderState             = 0x393898
 D3D_SimpleRenderStateEncode = 0
-D3D_Streams                 = 0
+D3D_Streams                 = 0x391000
 DSound_StreamVtable         = 0x39DDB0
 DSound_StreamVtable2        = 0x39DDA0
 XPP_GamepadType             = 0x3947DC

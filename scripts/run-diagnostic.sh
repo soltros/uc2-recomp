@@ -45,20 +45,20 @@ if ((watchdog_secs > 0)); then
     runner=(timeout --signal=TERM --kill-after=5s "${watchdog_secs}s" "$binary")
 fi
 
-echo "XboxXBERecomp UC2 diagnostic run"
-echo "  executable: $binary"
-echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)"
-echo "  log:        $log"
-echo "  captures:   $capture_dir (press F3 to capture a frame)"
+echo "XboxXBERecomp UC2 diagnostic run" | tee "$log"
+echo "  executable: $binary" | tee -a "$log"
+echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)" | tee -a "$log"
+echo "  log:        $log" | tee -a "$log"
+echo "  captures:   $capture_dir (press F3 to capture a frame)" | tee -a "$log"
 if ((watchdog_secs > 0)); then
-    echo "  watchdog:   ${watchdog_secs}s"
+    echo "  watchdog:   ${watchdog_secs}s" | tee -a "$log"
 fi
 
 set +e
 "$repo_root/scripts/with-xberecomp-nix-env.sh" env \
     XBE_PERF=1 \
     XBE_CAPTURE_DIR="$capture_dir" \
-    "${runner[@]}" 2>&1 | tee "$log"
+    "${runner[@]}" 2>&1 | tee -a "$log"
 statuses=("${PIPESTATUS[@]}")
 set -e
 
