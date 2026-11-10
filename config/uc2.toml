@@ -263,10 +263,6 @@ XOnlineStartup                                       = 0x3269BA
 D3D_DeferredTextureState    = 0x3911D8
 D3D_Device                  = 0x3913E0
 D3D_DirtyFlags              = 0x393890
-# XboxXBERecomp's D3D HLE expects the device's current FVF shader descriptor.
-# UC2 doesn't export the stock XDK object, so use a zeroed guest descriptor in
-# the unused gap before the toolkit region; its zero flags select the FVF path.
-D3D_FvfShader               = 0x006FF000
 D3D_IndexData               = 0x394738
 D3D_pDevice                 = 0x393888
 D3D_RenderState             = 0x393898

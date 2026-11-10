@@ -1,0 +1,19 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -398,5 +398,15 @@ HLE_STDCALL(Direct3D_CreateDevice, 6) {
+ #if HAS_D3D_FvfShader
+     if (XDK_CDevice_VertexShader != xdk::kUnknown) SetDev(XDK_CDevice_VertexShader, SYM(D3D_FvfShader));
++#else
++    // UC2 has no exported stock FVF shader object. Allocate a zeroed descriptor
++    // in committed guest memory so guest code can safely inspect its flags.
++    if (XDK_CDevice_VertexShader != xdk::kUnknown) {
++        uint32_t fvf_shader = mem::AllocSystem(0x14, 16);
++        if (fvf_shader) {
++            std::memset(HostPtr(fvf_shader), 0, 0x14);
++            SetDev(XDK_CDevice_VertexShader, fvf_shader);
++        } else LOGE("d3d: could not allocate the UC2 FVF shader descriptor");
++    }
+ #endif
+     if (kVBlank) {
+         // notification event, signalled
