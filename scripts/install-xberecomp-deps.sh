@@ -13,7 +13,7 @@ fi
 replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
     libxfixes libxrender libxkbcommon wayland libdecor pipewire
-    libpulseaudio alsa-lib systemd
+    libpulseaudio alsa-lib systemd xorgproto
 )
 
 installables=(
@@ -33,10 +33,18 @@ installables=(
     'nixpkgs#libpulseaudio^out,dev'
     'nixpkgs#alsa-lib^out,dev'
     'nixpkgs#systemd^out,dev,man'
+    'nixpkgs#xorgproto'
 )
 
 echo "Replacing runtime-only profile entries with entries that include development outputs..."
-nix profile remove "${replace[@]}"
+profile_json="$(nix profile list --json)"
+mapfile -t installed_entries < <(
+    python3 -c 'import json, sys; items = json.load(sys.stdin)["elements"]; print("\n".join(name for name in sys.argv[1:] if name in items))' \
+        "${replace[@]}" <<<"$profile_json"
+)
+if ((${#installed_entries[@]})); then
+    nix profile remove "${installed_entries[@]}"
+fi
 if ! nix profile add "${installables[@]}"; then
     echo "Install failed; restoring the previous Nix profile generation." >&2
     nix profile rollback || true
