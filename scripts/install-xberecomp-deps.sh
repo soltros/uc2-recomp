@@ -13,7 +13,7 @@ fi
 replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
     libxfixes libxrender libxkbcommon wayland libdecor pipewire
-    libpulseaudio alsa-lib systemd xorgproto libxscrnsaver libxtst
+    libpulseaudio alsa-lib systemd libxscrnsaver libxtst
     libxinerama libdrm libgbm libthai fribidi libusb1 dbus ibus
     libjack2 sndio
 )
@@ -35,7 +35,6 @@ installables=(
     'nixpkgs#libpulseaudio^out,dev'
     'nixpkgs#alsa-lib^out,dev'
     'nixpkgs#systemd^out,dev,man'
-    'nixpkgs#xorgproto'
     'nixpkgs#libxscrnsaver'
     'nixpkgs#libxtst'
     'nixpkgs#libxinerama^out,dev'
@@ -52,16 +51,42 @@ installables=(
 
 echo "Replacing runtime-only profile entries with entries that include development outputs..."
 profile_json="$(nix profile list --json)"
+profile_changes=0
+restore_profile() {
+    echo "Restoring the previous Nix profile generation(s)..." >&2
+    for ((i = 0; i < profile_changes; i++)); do
+        nix profile rollback || true
+    done
+}
+
+if python3 -c 'import json, sys; sys.exit(0 if "xorgproto" in json.load(sys.stdin)["elements"] else 1)' <<<"$profile_json"; then
+    if ! nix profile remove xorgproto; then
+        echo "Could not replace the existing xorgproto profile entry." >&2
+        exit 1
+    fi
+    ((profile_changes += 1))
+fi
+if ! nix profile add --priority 4 'nixpkgs#xorgproto'; then
+    echo "Could not add Xorg protocol headers; restoring the previous Nix profile." >&2
+    restore_profile
+    exit 1
+fi
+((profile_changes += 1))
 mapfile -t installed_entries < <(
     python3 -c 'import json, sys; items = json.load(sys.stdin)["elements"]; print("\n".join(name for name in sys.argv[1:] if name in items))' \
         "${replace[@]}" <<<"$profile_json"
 )
 if ((${#installed_entries[@]})); then
-    nix profile remove "${installed_entries[@]}"
+    if ! nix profile remove "${installed_entries[@]}"; then
+        echo "Could not replace existing runtime-only profile entries." >&2
+        restore_profile
+        exit 1
+    fi
+    ((profile_changes += 1))
 fi
 if ! nix profile add "${installables[@]}"; then
-    echo "Install failed; restoring the previous Nix profile generation." >&2
-    nix profile rollback || true
+    echo "Install failed." >&2
+    restore_profile
     exit 1
 fi
 echo "Development outputs installed in the Nix profile."
