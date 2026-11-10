@@ -31,7 +31,7 @@ fi
 
 # Keep the UC2-specific Xbox D3D fallback reproducible when building against a
 # fresh checkout of the Linux fork. The patch is a no-op when already present.
-tool_patch="$repo_root/patches/xberecomp/0001-default-unset-uc2-texture-address-modes.patch"
+tool_patch="$repo_root/patches/xberecomp/0001-uc2-runtime-fixes.patch"
 if git -C "$tool_root" apply --reverse --check "$tool_patch" >/dev/null 2>&1; then
     echo "XboxXBERecomp UC2 D3D patch is already applied."
 elif git -C "$tool_root" apply --check "$tool_patch"; then

@@ -1,0 +1,119 @@
+diff --git a/sdk/runtime/kernel/memory.cpp b/sdk/runtime/kernel/memory.cpp
+index be9721f..a162c63 100644
+--- a/sdk/runtime/kernel/memory.cpp
++++ b/sdk/runtime/kernel/memory.cpp
+@@ -68,6 +68,22 @@ bool Init() {
+         LOGE("memory: could not reserve the 4 GB guest space");
+         return false;
+     }
++
++    // XDK startup probes NV2A registers before creating the host D3D device.
++    // The rest of the guest range is intentionally PROT_NONE, so leaving these
++    // hardware windows unbacked turns normal MMIO probes into host SIGSEGVs.
++    auto map_device_window = [](uint32_t va, uint32_t size) {
++#ifdef _WIN32
++        return VirtualAlloc(g_base + va, size, MEM_COMMIT, PAGE_READWRITE) == g_base + va;
++#else
++        return mprotect(g_base + va, size, PROT_READ | PROT_WRITE) == 0;
++#endif
++    };
++    if (!map_device_window(kNv2aBase, kNv2aSize) || !map_device_window(kMcpxBase, kMcpxSize) ||
++        !map_device_window(kFlashBase, kFlashSize)) {
++        LOGE("memory: could not map Xbox device apertures");
++        return false;
++    }
+     LOGI("memory: guest space at %p", static_cast<void*>(g_base));
+     return true;
+ }
+@@ -109,7 +125,11 @@ void Decommit(uint32_t va, uint32_t size) {
+     for (uint64_t p = first; p < end; p += kPage) g_committed[size_t(p >> 12)] = 0;
+ }
+ 
+-bool IsCommitted(uint32_t va) { return InPhysical(va) || g_committed[va >> 12] != 0; }
++bool IsCommitted(uint32_t va) {
++    return InPhysical(va) || (va >= kNv2aBase && va < kNv2aBase + kNv2aSize) ||
++           (va >= kMcpxBase && va < kMcpxBase + kMcpxSize) ||
++           (va >= kFlashBase && va < kFlashBase + kFlashSize) || g_committed[va >> 12] != 0;
++}
+ 
+ // first fit allocator over a guest range
+ class Ranges {
+diff --git a/sdk/runtime/kernel/memory.h b/sdk/runtime/kernel/memory.h
+index 019aaff..d04dcfb 100644
+--- a/sdk/runtime/kernel/memory.h
++++ b/sdk/runtime/kernel/memory.h
+@@ -15,6 +15,12 @@ constexpr uint32_t kSystemBase = 0xB0000000;       // pool, system memory, threa
+ constexpr uint32_t kSystemSize = 0x10000000;
+ constexpr uint32_t kStackBase = 0xD0000000;
+ constexpr uint32_t kStackSize = 0x10000000;
++// Device apertures are part of the Xbox virtual address space. The current
++// host backend emulates their effects where needed; backing them here keeps
++// ordinary guest register reads and writes inside the reserved 4 GB mapping.
++constexpr uint32_t kNv2aBase = 0xFD000000, kNv2aSize = 0x01000000;
++constexpr uint32_t kMcpxBase = 0xFE800000, kMcpxSize = 0x00800000;
++constexpr uint32_t kFlashBase = 0xFF000000, kFlashSize = 0x00100000;
+ 
+ // NT allocation flags
+ constexpr uint32_t kMemCommit = 0x1000, kMemReserve = 0x2000, kMemDecommit = 0x4000, kMemRelease = 0x8000,
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+index ac1b77b..4a34c8c 100644
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -222,7 +222,33 @@ void ApplyDefaultStates(X86Context& ctx) {
+     GUEST_CALL(D3D_InitDefaultState, ctx, {});
+ #else
+     (void)ctx;
+-    LOG_FIRST(1, "d3d: the image has no D3D_InitDefaultState, default states were not applied");
++    // This image omits the XDK initializer, so its zeroed texture-stage table lacks
++    // the defaults the guest's state translator expects (notably ColorOp at index
++    // 12). Fill the D3D defaults only in unset slots, preserving title-written state.
++    for (uint32_t stage = 0; stage < 4; stage++) {
++        auto set_if_unset = [stage](uint32_t state, uint32_t value) {
++            uint32_t p = kTextureState + (stage * kStageStates + state) * 4;
++            if (!R32(p)) {
++                W32(p, value);
++                g_state.tss[stage][state] = value;
++            }
++        };
++        set_if_unset(gpu::kTssAddressU, 1);  // WRAP
++        set_if_unset(gpu::kTssAddressV, 1);
++        set_if_unset(gpu::kTssAddressW, 1);
++        set_if_unset(gpu::kTssMagFilter, 1);  // POINT
++        set_if_unset(gpu::kTssMinFilter, 1);
++        set_if_unset(gpu::kTssMaxAnisotropy, 1);
++        set_if_unset(gpu::kTssColorOp, stage == 0 ? 4 : 1);  // MODULATE, then DISABLE
++        set_if_unset(gpu::kTssColorArg1, 2);                 // TEXTURE
++        set_if_unset(gpu::kTssColorArg2, 1);                 // CURRENT
++        set_if_unset(gpu::kTssAlphaOp, stage == 0 ? 2 : 1);  // SELECTARG1, then DISABLE
++        set_if_unset(gpu::kTssAlphaArg1, 2);
++        set_if_unset(gpu::kTssAlphaArg2, 1);
++        set_if_unset(gpu::kTssTexCoordIndex, stage);
++        set_if_unset(gpu::kTssResultArg, 1);  // CURRENT
++    }
++    LOG_FIRST(1, "d3d: image has no D3D_InitDefaultState; applied unset texture-stage defaults");
+ #endif
+ }
+ 
+@@ -320,8 +346,7 @@ using namespace d3d;
+ 
+ HLE_STDCALL(Direct3D_CreateDevice, 6) {
+     XDK_REQUIRE("d3d", XDK_DATA(D3D_Device), XDK_DATA(D3D_pDevice), XDK_DATA(D3D_DirtyFlags),
+-                XDK_DATA(D3D_DeferredTextureState), XDK_DATA(D3D_RenderState), XDK_DATA(D3D_Streams),
+-                XDK_DATA(D3D_SimpleRenderStateEncode));
++                XDK_DATA(D3D_DeferredTextureState), XDK_DATA(D3D_RenderState), XDK_DATA(D3D_Streams));
+     XDK_REQUIRE("d3d", XDK_KEY(CDevice_Push), XDK_KEY(CDevice_PushThreshold), XDK_KEY(CDevice_BaseVertex),
+                 XDK_KEY(CDevice_IndexBuffer), XDK_KEY(CDevice_ZScale), XDK_KEY(CDevice_SuperSampleX),
+                 XDK_KEY(CDevice_SuperSampleY), XDK_KEY(CDevice_Transforms), XDK_KEY(CDevice_Textures),
+@@ -672,8 +697,12 @@ HLE_FASTCALL(D3DDevice_SetRenderState_Simple, 0) {
+ HLE_STDCALL(D3DDevice_SetRenderStateNotInline, 2) {
+     uint32_t rs = a[0], v = a[1];
+     if (rs < gpu::kRsDeferredFirst) {
++#if HAS_D3D_SimpleRenderStateEncode
+         uint32_t method = R32(kSimpleEncode + rs * 4) & 0x1FFC;
+         g_state.simple[method >> 2] = v;
++#else
++        LOG_FIRST(1, "d3d: SetRenderStateNotInline has no simple-state encoding table in this image");
++#endif
+         W32(kRenderState + rs * 4, v);  // titles read their states back from the library's table
+     } else if (rs < gpu::kRsMax) {
+         SetComplex(rs, v);
