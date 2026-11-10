@@ -14,7 +14,7 @@ replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
     libxfixes libxrender libxkbcommon wayland libdecor pipewire
     libpulseaudio alsa-lib systemd libxscrnsaver libxtst
-    libxinerama libdrm libgbm libthai fribidi libusb1 dbus ibus
+    libxinerama libdrm libgbm libthai fribidi libusb1
     libjack2 sndio
 )
 
@@ -43,8 +43,6 @@ installables=(
     'nixpkgs#libthai^out,dev'
     'nixpkgs#fribidi^out,dev'
     'nixpkgs#libusb1^out,dev'
-    'nixpkgs#dbus^out,dev,lib'
-    'nixpkgs#ibus^out,dev'
     'nixpkgs#libjack2^out,dev'
     'nixpkgs#sndio'
 )

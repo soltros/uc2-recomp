@@ -13,4 +13,6 @@ fi
 "$repo_root/scripts/install-xberecomp-deps.sh"
 
 cd "$fork_dir"
-exec "$repo_root/scripts/with-xberecomp-nix-env.sh" cmake --preset release
+exec "$repo_root/scripts/with-xberecomp-nix-env.sh" cmake --preset release \
+    -DSDL_DBUS=OFF \
+    -DSDL_IBUS=OFF
