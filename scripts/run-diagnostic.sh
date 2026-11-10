@@ -47,6 +47,7 @@ fi
 
 echo "XboxXBERecomp UC2 diagnostic run"
 echo "  executable: $binary"
+echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)"
 echo "  log:        $log"
 echo "  captures:   $capture_dir (press F3 to capture a frame)"
 if ((watchdog_secs > 0)); then
