@@ -12,7 +12,7 @@ fi
 
 replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
-    libxfixes libxrender libxkbcommon wayland libdecor pipewire
+    libxfixes libxrender libxkbcommon libxcb wayland libdecor pipewire
     libpulseaudio alsa-lib systemd libxscrnsaver libxtst
     libxinerama libdrm libgbm libthai fribidi libusb1
     libjack2 sndio
@@ -29,6 +29,7 @@ installables=(
     'nixpkgs#libxfixes^out,dev'
     'nixpkgs#libxrender^out,dev'
     'nixpkgs#libxkbcommon^out,dev'
+    'nixpkgs#libxcb^out,dev'
     'nixpkgs#wayland^out,dev'
     'nixpkgs#libdecor^out,dev'
     'nixpkgs#pipewire^out,dev'
