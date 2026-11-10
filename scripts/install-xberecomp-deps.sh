@@ -13,7 +13,9 @@ fi
 replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
     libxfixes libxrender libxkbcommon wayland libdecor pipewire
-    libpulseaudio alsa-lib systemd xorgproto
+    libpulseaudio alsa-lib systemd xorgproto libxscrnsaver libxtst
+    libxinerama libdrm libgbm libthai fribidi libusb1 dbus ibus
+    libjack2 sndio
 )
 
 installables=(
@@ -34,6 +36,18 @@ installables=(
     'nixpkgs#alsa-lib^out,dev'
     'nixpkgs#systemd^out,dev,man'
     'nixpkgs#xorgproto'
+    'nixpkgs#libxscrnsaver'
+    'nixpkgs#libxtst'
+    'nixpkgs#libxinerama^out,dev'
+    'nixpkgs#libdrm^out,dev'
+    'nixpkgs#libgbm'
+    'nixpkgs#libthai^out,dev'
+    'nixpkgs#fribidi^out,dev'
+    'nixpkgs#libusb1^out,dev'
+    'nixpkgs#dbus^out,dev,lib'
+    'nixpkgs#ibus^out,dev'
+    'nixpkgs#libjack2^out,dev'
+    'nixpkgs#sndio'
 )
 
 echo "Replacing runtime-only profile entries with entries that include development outputs..."
