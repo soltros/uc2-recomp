@@ -77,7 +77,9 @@ D3DDevice_DeletePixelShader                          = 0
 D3DDevice_DeleteVertexShader                         = 0
 D3DDevice_DrawIndexedVertices                        = 0x3858D0
 D3DDevice_DrawVertices = 0x385800
-D3DDevice_DrawVerticesUP                             = 0
+# UC2's in-image DrawVerticesUP body at 0x3854D0 uses the XDK stdcall(4) ABI;
+# route it through XboxXBERecomp's Vulkan-backed GPU draw HLE.
+D3DDevice_DrawVerticesUP                             = 0x3854D0
 D3DDevice_EnableOverlay                              = 0x386320
 D3DDevice_End                                        = 0
 D3DDevice_EndPush                                    = 0
