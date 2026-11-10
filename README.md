@@ -36,8 +36,14 @@ your own game files locally under `game/`.
   `D:\Textures\Movies\UI_LoadingMovie.xmv`, and
   `Z:\XboxMaps\Menu.lin`. Texture captures include the teal UC2 loading
   animation, and the GPU submitted over 5,600 draws in 90 seconds without a
-  guest fault. Earlier windowed runs displayed the studio logos. A windowed
-  menu/gameplay run and controller response still need validation.
+  guest fault. The latest windowed capture shows the orange intro, Unreal
+  Technology, and Liandri logos in the actual framebuffer. It reached 785
+  flips and then stopped submitting frames. Menu/gameplay rendering still
+  needs validation.
+- The first Bluetooth-controller test did not enable xboxrecomp's optional
+  USB/XID gamepad device, so the paired controller could not reach the guest.
+  The diagnostic launcher now sets `RECOMP_USB=1` and enables periodic USB
+  transfer statistics; controller input still needs a run with those settings.
 - Release mode exposed an unsupported `F7 TEST` instruction in xboxrecomp's
   POSIX x86-64 MMIO decoder. The decoder fix and focused test are in
   [`soltros/xboxrecomp` commit d832e03](https://github.com/soltros/xboxrecomp/commit/d832e03).
@@ -98,6 +104,7 @@ framebuffer window enabled:
 ```sh
 cd "$UC2"
 RECOMP_AC97_READY=1 RECOMP_EXT_VMA=1 RECOMP_PB_EXEC=1 RECOMP_FB_WINDOW=1 \
+RECOMP_USB=1 \
 RECOMP_KEYBOARD=1 ./build/uc2_recomp
 ```
 
@@ -105,27 +112,30 @@ The Linux framebuffer presenter uses SDL, while the toolkit's D3D8
 compatibility layer targets OpenGL. `RECOMP_FB_WINDOW=1` opens the toolkit's
 host window; omit it to run headless.
 
-`RECOMP_KEYBOARD=1` enables the toolkit's keyboard controller mapping in the
-focused window (Enter maps to Xbox START). Keyboard input was disabled in the
-first splash-screen run, so menu navigation has not yet been checked.
+`RECOMP_USB=1` exposes the host's SDL GameController through xboxrecomp's
+emulated Xbox USB/XID gamepad. `RECOMP_KEYBOARD=1` enables the toolkit's
+keyboard controller mapping in the focused window (Enter maps to Xbox START).
 
-Run the diagnostic launcher to capture input state, the guest watchdog,
-texture registers, and periodic snapshots of textures used by the renderer.
+Run the diagnostic launcher to capture USB/controller state, framebuffer
+output, texture registers, and periodic snapshots of textures used by the
+renderer.
 Logs and texture BMPs are kept under the ignored `diagnostic_logs/` directory.
-The latest user run reached 203 flips at about 6 FPS, then stopped advancing;
-the snapshots should show whether the movie texture continues changing:
+The latest user run displayed the studio logos and then stopped at 785 flips.
+The saved framebuffer files show the rendered sequence; press Enter or START
+after the logos to test whether the title advances into its menu:
 
 ```sh
 ./scripts/run-diagnostic.sh
 ```
 
-The launcher enables keyboard input, input diagnostics, and key tracing. It
+The launcher enables USB gamepad emulation, periodic USB transfer statistics,
+keyboard input, input diagnostics, and key tracing. It
 defaults to paced 60 Hz vblank and caps guest delays at 1 ms so startup can
 advance past the title's roughly 49-day sleep. The runtime logs each shortened
 delay. The watchdog is disabled by default so the game can keep running. Set
 `RECOMP_WATCHDOG_SECS=60` to capture guest state and exit with status 3 after
-60 seconds. With the window focused, press Enter to test START; the launcher
-logs key events and controller state. Override `RECOMP_VBLANK` or
+60 seconds. Press Enter or START on the paired controller to test navigation;
+the log records keyboard input and USB transfer state. Override `RECOMP_VBLANK` or
 `RECOMP_DELAY_CAP_MS` to change these diagnostic defaults.
 
 The launcher captures every 30th bind of an already-seen texture. Set

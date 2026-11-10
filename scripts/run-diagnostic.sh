@@ -23,6 +23,8 @@ env \
   RECOMP_TEX_DUMP="${RECOMP_TEX_DUMP:-diagnostic_logs/uc2_texture_${stamp}_}" \
   RECOMP_TEX_DUMP_EVERY="${RECOMP_TEX_DUMP_EVERY:-30}" \
   RECOMP_FB_DUMP="${RECOMP_FB_DUMP:-diagnostic_logs/uc2_frame_${stamp}_}" \
+  RECOMP_USB=1 \
+  RECOMP_USB_STATS=1 \
   RECOMP_KEYBOARD=1 \
   RECOMP_KEY_TRACE=1 \
   RECOMP_INPUT_DIAG=1 \
