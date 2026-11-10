@@ -22,6 +22,8 @@ env \
   RECOMP_FB_WINDOW=1 \
   RECOMP_GL_PRESENT=1 \
   RECOMP_AUDIO_HOST=1 \
+  RECOMP_AUDIO_WAV="${RECOMP_AUDIO_WAV:-diagnostic_logs/uc2_audio_${stamp}.wav}" \
+  RECOMP_AUDIO_WAV_SECS="${RECOMP_AUDIO_WAV_SECS:-45}" \
   RECOMP_TEX_STATE=1 \
   RECOMP_TEX_DUMP="${RECOMP_TEX_DUMP:-diagnostic_logs/uc2_texture_${stamp}_}" \
   RECOMP_TEX_DUMP_EVERY="${RECOMP_TEX_DUMP_EVERY:-30}" \
