@@ -6,9 +6,9 @@ This project is licensed under GPL-3.0-only. See [LICENSE](LICENSE). XboxXBEReco
 
 ## Status
 
-XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The generated Linux executable built successfully from the local XBE. Its first run reaches SDL audio initialization and then faults when UC2 probes the NV2A register window at guest address `0xFD001804`.
+XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The generated Linux executable builds from the local XBE. After the device-aperture mapping fix, three 45-second diagnostic runs stayed open without a guest fault. Their Release logs did not include runtime Info/performance lines, so they did not establish whether the guest reached D3D or submitted frames.
 
-The Linux fork initially reserved this Xbox device aperture as inaccessible memory. A runtime fix is committed in the local XboxXBERecomp checkout as `2206710` (push is pending network access); the rebuilt executable compiles, but still needs a desktop run to verify startup beyond that fault. Direct3D ABI mappings in `config/uc2.toml` are provisional and will be audited as runtime diagnostics expose the next issues. Rendered gameplay is not yet verified.
+The Linux fork initially reserved Xbox device apertures as inaccessible memory. The fix is committed in the local XboxXBERecomp checkout as `2206710` (push is pending network access). Direct3D ABI mappings in `config/uc2.toml` are provisional and will be audited as runtime diagnostics expose the next issues. The optimized development build now keeps XboxXBERecomp's boot and per-frame Info logs enabled. Rendered gameplay is not yet verified.
 
 ## Requirements
 
