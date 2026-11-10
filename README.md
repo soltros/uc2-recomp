@@ -40,10 +40,10 @@ your own game files locally under `game/`.
   Technology, and Liandri logos in the actual framebuffer. It reached 785
   flips and then stopped submitting frames. Menu/gameplay rendering still
   needs validation.
-- The first Bluetooth-controller test did not enable xboxrecomp's optional
-  USB/XID gamepad device, so the paired controller could not reach the guest.
-  The diagnostic launcher now sets `RECOMP_USB=1` and enables periodic USB
-  transfer statistics; controller input still needs a run with those settings.
+- The Bluetooth-controller run set `RECOMP_USB=1` but produced no OHCI or input
+  diagnostics. The toolkit had the OHCI model but did not initialize it during
+  memory setup. A toolkit fix now connects the opt-in controller model; input
+  still needs a run that confirms device enumeration and button reports.
 - Release mode exposed an unsupported `F7 TEST` instruction in xboxrecomp's
   POSIX x86-64 MMIO decoder. The decoder fix and focused test are in
   [`soltros/xboxrecomp` commit d832e03](https://github.com/soltros/xboxrecomp/commit/d832e03).
@@ -129,12 +129,13 @@ after the logos to test whether the title advances into its menu:
 ```
 
 The launcher enables USB gamepad emulation, periodic USB transfer statistics,
-keyboard input, input diagnostics, and key tracing. It
+keyboard input, input diagnostics, and key tracing. It also overrides any
+watchdog value inherited from the shell, defaulting to no timeout. Set
+`UC2_DIAG_WATCHDOG_SECS=45` to opt into a 45-second diagnostic watchdog. The
+earlier 45-second termination was the watchdog, not a guest crash. The launcher
 defaults to paced 60 Hz vblank and caps guest delays at 1 ms so startup can
 advance past the title's roughly 49-day sleep. The runtime logs each shortened
-delay. The watchdog is disabled by default so the game can keep running. Set
-`RECOMP_WATCHDOG_SECS=60` to capture guest state and exit with status 3 after
-60 seconds. Press Enter or START on the paired controller to test navigation;
+delay. Press Enter or START on the paired controller to test navigation;
 the log records keyboard input and USB transfer state. Override `RECOMP_VBLANK` or
 `RECOMP_DELAY_CAP_MS` to change these diagnostic defaults.
 
