@@ -1,154 +1,42 @@
 # Unreal Championship 2: The Liandri Conflict Recomp
 
-An experimental Linux recomp project based on the upstream **xboxrecomp**
-toolkit and its runtime libraries:
+An experimental Linux recomp built with [XboxXBERecomp](https://github.com/datfooldive/DEFJAM-XBERecomp-Linux), its XBE analysis/code-generation tools, and its Linux runtime. The runtime renders through Vulkan. This repository contains no game binaries, assets, or generated guest code; provide your own game files locally.
 
-<https://github.com/sp00nznet/xboxrecomp>
+This project is licensed under GPL-3.0-only. See [LICENSE](LICENSE). XboxXBERecomp and its dependencies remain separately licensed.
 
-The project uses only xboxrecomp's parser, analysis pipeline, generated
-recompilation, and runtime APIs. Linux rendering uses xboxrecomp's bundled
-SDL2/OpenGL backend. The project is licensed under GPL-3.0-only. Original game
-files and generated recomp output are not included in this repository. Provide
-your own game files locally under `game/`.
+## Status
 
-## Current status
+XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The generated Linux executable built successfully from the local XBE. Its first run reaches SDL audio initialization and then faults when UC2 probes the NV2A register window at guest address `0xFD001804`.
 
-- XBE parsing succeeds with xboxrecomp v0.17.0.
-- `default.xbe` identifies the title as Unreal Championship 2, title ID
-  `0x4D570021`, with guest entry point `0x0026867F`.
-- The XBE contains 18 sections, 156 kernel imports, and was built with XDK
-  5849.
-- Full disassembly covered 1.23 million instructions across all executable
-  sections and found 13,942 functions.
-- Function identification classified 17,072 entries, including discovered
-  vtable thunks. ABI analysis wrote 13,942 entries and identified 2,790
-  `thiscall` functions.
-- xboxrecomp generated 13,943 functions into 56 local C chunks, plus the
-  dispatch table and register header. These outputs are ignored by Git.
-- The Linux/OpenGL runtime and generated game code compile and link. Plain
-  single-configuration CMake builds now default to `Release`; generated guest
-  code is CPU-intensive, and an unoptimized build advanced through startup too
-  slowly.
-- The POSIX host initializes xboxrecomp's optional MCPX APU model when
-  `RECOMP_AC97_READY=1` is set. This lets DirectSound initialize; without it,
-  DirectSound returns `DSERR_NODRIVER` and the title skips D3D setup.
-- An optimized headless run loaded `D:\Movies\UC2_Logos.xmv`,
-  `D:\Textures\Movies\UI_LoadingMovie.xmv`, and
-  `Z:\XboxMaps\Menu.lin`. Texture captures include the teal UC2 loading
-  animation, and the GPU submitted over 5,600 draws in 90 seconds without a
-  guest fault. The latest windowed capture shows the orange intro, Unreal
-  Technology, and Liandri logos in the actual framebuffer. It reached 785
-  flips and then stopped submitting frames. Menu/gameplay rendering still
-  needs validation.
-- The Bluetooth-controller run set `RECOMP_USB=1` but produced no OHCI or input
-  diagnostics. The toolkit had the OHCI model but did not initialize it during
-  memory setup. A toolkit fix now connects the opt-in controller model; input
-  still needs a run that confirms device enumeration and button reports.
-- Release mode exposed an unsupported `F7 TEST` instruction in xboxrecomp's
-  POSIX x86-64 MMIO decoder. The decoder fix and focused test are in
-  [`soltros/xboxrecomp` commit d832e03](https://github.com/soltros/xboxrecomp/commit/d832e03).
-  The test passes with `ctest --test-dir /tmp/mmio-decode-x86_64-build
-  --output-on-failure`.
-- The diagnostic launcher enables paced vblank and caps guest delays at 1 ms
-  so startup can pass the title's roughly 49-day sleep. Set
-  `RECOMP_WATCHDOG_SECS=0` explicitly when launching from a shell that may
-  already export a watchdog timeout.
+The Linux fork initially reserved this Xbox device aperture as inaccessible memory. A runtime fix is committed in the local XboxXBERecomp checkout as `2206710` (push is pending network access); the rebuilt executable compiles, but still needs a desktop run to verify startup beyond that fault. Direct3D ABI mappings in `config/uc2.toml` are provisional and will be audited as runtime diagnostics expose the next issues. Rendered gameplay is not yet verified.
 
 ## Requirements
 
-- Linux x86-64
-- xboxrecomp checkout
-- Python 3.10+ with Capstone
-- CMake 3.20+, a C compiler and build tool, SDL2, OpenGL, libepoxy, and OpenSSL
-- Your own extracted Unreal Championship 2 files
-
-Install runtime build dependencies as described by xboxrecomp's
-`tools/linux/install_deps.sh`. The POSIX host uses xboxrecomp's
-`xbox_PosixMmioFault` and `xbox_HostWindowMain` APIs.
+- Linux x86-64, CMake 3.25+, Ninja or another supported build tool, and Clang/Clang++ with C++20 support
+- The XboxXBERecomp Linux checkout and the Linux development dependencies documented there
+- A legally acquired, extracted Unreal Championship 2 game directory containing `default.xbe`
 
 ## Local game files
 
-Put the extracted game files under `game/`, preserving their directory
-structure. `game/` and known Xbox game file formats are ignored by Git.
+The build expects `assets/default.xbe`. By default, `scripts/build-xberecomp-linux.sh` links `assets/` to the ignored `game/` path. The existing `game/` symlink can point to the user's extracted game directory. To use another location, set `UC2_GAME_DIR` when building. Neither path nor game files are committed.
 
-## Regenerate and build
-
-Set `UC2` to this checkout and `XBOXRECOMP_DIR` to the xboxrecomp checkout.
-Run the following from the xboxrecomp directory after placing your game files
-under `$UC2/game/`:
+Set `XBERECOMP_ROOT` to the XboxXBERecomp checkout if it is not at `~/Projects/uc2-xberecomp-linux-evaluation`:
 
 ```sh
-mkdir -p "$UC2/analysis"
-python3 -m tools.xbe_parser "$UC2/game/default.xbe" --json "$UC2/analysis/uc2_analysis.json"
-python3 -m tools.disasm "$UC2/game/default.xbe" --analysis-json "$UC2/analysis/uc2_analysis.json" --output "$UC2/analysis/disasm"
-python3 -m tools.func_id "$UC2/game/default.xbe" --functions "$UC2/analysis/disasm/functions.json" --strings "$UC2/analysis/disasm/strings.json" --xrefs "$UC2/analysis/disasm/xrefs.json" --output "$UC2/analysis/func_id"
-python3 -m tools.abi_analysis "$UC2/game/default.xbe" --disasm-dir "$UC2/analysis/disasm" --func-id-dir "$UC2/analysis/func_id" --output-dir "$UC2/analysis/abi"
-python3 -m tools.recomp "$UC2/game/default.xbe" --game-name "Unreal Championship 2: The Liandri Conflict" --all --split 250 --gen-dir "$UC2/src/recomp/gen" --disasm-dir "$UC2/analysis/disasm" --func-id-dir "$UC2/analysis/func_id" --abi-dir "$UC2/analysis/abi"
+XBERECOMP_ROOT="$HOME/Projects/uc2-xberecomp-linux-evaluation" \
+  ./scripts/build-xberecomp-linux.sh
 ```
 
-Then configure and build the Linux executable:
+The script configures the project and builds `build-xberecomp/uc2_recomp`. XboxXBERecomp generates the guest C++ translation under the ignored `generated/uc2/` directory from the local XBE and `config/uc2.toml`.
+
+## Run and capture diagnostics
 
 ```sh
-cmake -S "$UC2" -B "$UC2/build" -DXBOXRECOMP_DIR="$XBOXRECOMP_DIR"
-cmake --build "$UC2/build" --parallel 2
+RECOMP_WATCHDOG_SECS=45 ./scripts/run-diagnostic.sh
 ```
 
-Single-configuration builds default to `Release` because the generated guest
-code performs CPU-intensive work such as XMV video decoding. Select
-`-DCMAKE_BUILD_TYPE=Debug` explicitly when debugging the host or generated
-code.
+The launcher writes a timestamped log to `diagnostic_logs/` and configures frame capture there (press F3 in the game window). Set `UC2_XBERECOMP_BIN` to run another executable. Omit `RECOMP_WATCHDOG_SECS` to let the game run until it is closed.
 
-Run with the Xbox memory extension, APU model, pushbuffer executor, and
-framebuffer window enabled:
+## ABI and graphics work
 
-```sh
-cd "$UC2"
-RECOMP_AC97_READY=1 RECOMP_EXT_VMA=1 RECOMP_PB_EXEC=1 RECOMP_FB_WINDOW=1 \
-RECOMP_USB=1 \
-RECOMP_KEYBOARD=1 ./build/uc2_recomp
-```
-
-The Linux framebuffer presenter uses SDL, while the toolkit's D3D8
-compatibility layer targets OpenGL. `RECOMP_FB_WINDOW=1` opens the toolkit's
-host window. UC2 selects the toolkit's direct OpenGL scanout for that window,
-so the NV2A render target is presented without an SDL texture upload; omit the
-window flag to run headless.
-
-`RECOMP_USB=1` exposes the host's SDL GameController through xboxrecomp's
-emulated Xbox USB/XID gamepad. `RECOMP_KEYBOARD=1` enables the toolkit's
-keyboard controller mapping in the focused window (Enter maps to Xbox START).
-
-Run the diagnostic launcher to capture USB/controller state, framebuffer
-output, texture registers, and periodic snapshots of textures used by the
-renderer.
-Logs and texture BMPs are kept under the ignored `diagnostic_logs/` directory.
-The latest user run displayed the studio logos and then stopped at 785 flips.
-The saved framebuffer files show the rendered sequence; press Enter or START
-after the logos to test whether the title advances into its menu:
-
-```sh
-./scripts/run-diagnostic.sh
-```
-
-The launcher enables USB gamepad emulation, periodic USB transfer statistics,
-keyboard input, input diagnostics, and key tracing. It also overrides any
-watchdog value inherited from the shell, defaulting to no timeout. Set
-`UC2_DIAG_WATCHDOG_SECS=45` to opt into a 45-second diagnostic watchdog. The
-earlier 45-second termination was the watchdog, not a guest crash. The launcher
-defaults to paced 60 Hz vblank and caps guest delays at 1 ms so startup can
-advance past the title's roughly 49-day sleep. The runtime logs each shortened
-delay. Press Enter or START on the paired controller to test navigation;
-the log records keyboard input and USB transfer state. Override `RECOMP_VBLANK` or
-`RECOMP_DELAY_CAP_MS` to change these diagnostic defaults.
-
-The launcher captures every 30th bind of an already-seen texture. Set
-`RECOMP_TEX_DUMP_EVERY=60` for fewer snapshots, or set
-`RECOMP_TEX_DUMP_EVERY=0` to capture only the first use of each texture.
-
-The `analysis/`, `src/recomp/gen/`, and `build/` directories are local outputs
-and are not committed.
-
-## License
-
-This project is distributed under GPL-3.0-only. See [LICENSE](LICENSE).
-The xboxrecomp toolkit is a separate dependency under its own license.
+The title config uses XboxXBERecomp's symbol scanner and register/stack calling-convention mappings. The current D3D mapping list was assembled from the UC2 XBE's generated x86 call sites; it is not yet fully runtime-validated. Use the fault PC, guest registers, and generated instruction comments in `generated/uc2/` to audit each call. Keep generated outputs and game content out of Git.

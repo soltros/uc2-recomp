@@ -16,8 +16,11 @@
 *.unr
 
 # Recompiler outputs and local build products.
-/src/recomp/gen/
+/generated/
+/assets
+/src/recomp/
 /build/
+/build-xberecomp/
 /build-*/
 /analysis/
 /CMakeFiles/
