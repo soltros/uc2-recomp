@@ -29,6 +29,19 @@ if [[ ! -f "$tool_root/sdk/cmake/XbeRecomp.cmake" ]]; then
     exit 1
 fi
 
+# Keep the UC2-specific Xbox D3D fallback reproducible when building against a
+# fresh checkout of the Linux fork. The patch is a no-op when already present.
+tool_patch="$repo_root/patches/xberecomp/0001-default-unset-uc2-texture-address-modes.patch"
+if git -C "$tool_root" apply --reverse --check "$tool_patch" >/dev/null 2>&1; then
+    echo "XboxXBERecomp UC2 D3D patch is already applied."
+elif git -C "$tool_root" apply --check "$tool_patch"; then
+    git -C "$tool_root" apply "$tool_patch"
+    echo "Applied the UC2 D3D patch to XboxXBERecomp."
+else
+    echo "error: cannot apply the UC2 D3D patch to $tool_root" >&2
+    exit 1
+fi
+
 # Nix keeps libxcb's development headers in a store output that may not be
 # merged into the profile include tree. SDL's Vulkan/X11 sources need this
 # header even though the runtime loader is already on the profile library path.
