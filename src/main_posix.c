@@ -14,6 +14,7 @@
 #include "recomp_types.h"
 #include "kernel/xbox_memory_layout.h"
 #include "kernel/nv2a_backend.h"
+#include "kernel/nv2a_backend_gl.h"
 #include "video/video_player.h"
 
 #define UC2_ENTRY_POINT 0x0026867Fu
@@ -129,6 +130,11 @@ static int boot_and_run(void)
     setvbuf(stderr, NULL, _IONBF, 0);
     fprintf(stderr, "Unreal Championship 2 recomp\n");
 
+    /* The NV2A executor is required: without it the toolkit's fallback
+     * rasterizer writes guest pixels on the CPU. UC2 always uses the GPU. */
+    if (!getenv("RECOMP_PB_EXEC"))
+        setenv("RECOMP_PB_EXEC", "1", 1);
+
     if (!load_xbe(UC2_XBE_PATH, &xbe_data, &xbe_size))
         return 1;
     if (!xbox_MemoryLayoutInit(xbe_data, xbe_size)) {
@@ -178,15 +184,29 @@ static int boot_and_run(void)
         return 1;
     }
 
-    fprintf(stderr, "Starting guest entry point 0x%08X\n", UC2_ENTRY_POINT);
-    if (getenv("RECOMP_PB_EXEC")) {
-        atomic_store_explicit(&s_sem_watch_stop, 0, memory_order_relaxed);
-        if (pthread_create(&sem_watch, NULL, watch_d3d_semaphore, NULL) == 0)
-            sem_watch_started = 1;
-        else
-            fprintf(stderr, "[NV2A] could not start D3D semaphore watcher\n");
+    /* UC2 uses the low-level NV2A pushbuffer path rather than the toolkit's
+     * D3D8 API. Require its OpenGL GPU rasterizer so a missing hardware driver
+     * cannot silently send the game through the CPU pixel renderer. */
+    if (!nv2a_gl_backend_init()) {
+        fprintf(stderr, "[BOOT] could not initialize the required OpenGL GPU renderer\n");
+        s_apu_exit_cleanup = NULL;
+        g_apu_state = NULL;
+        mcpx_apu_shutdown(apu);
+        xbox_kernel_shutdown();
+        xbox_MemoryLayoutShutdown();
+        free(xbe_data);
+        return 1;
     }
+
+    fprintf(stderr, "Starting guest entry point 0x%08X\n", UC2_ENTRY_POINT);
+    atomic_store_explicit(&s_sem_watch_stop, 0, memory_order_relaxed);
+    if (pthread_create(&sem_watch, NULL, watch_d3d_semaphore, NULL) == 0)
+        sem_watch_started = 1;
+    else
+        fprintf(stderr, "[NV2A] could not start D3D semaphore watcher\n");
     entry();
+
+    nv2a_gl_backend_shutdown();
 
     atomic_store_explicit(&s_sem_watch_stop, 1, memory_order_relaxed);
     if (sem_watch_started)
