@@ -232,5 +232,10 @@ int main(void)
 #ifdef SIGBUS
     sigaction(SIGBUS, &action, NULL);
 #endif
+    /* With the OpenGL NV2A backend, let the toolkit scan out its render
+     * target directly when the framebuffer window is enabled. Set to 0 to
+     * retain SDL's CPU-copy presenter for comparison. */
+    if (getenv("RECOMP_FB_WINDOW") && !getenv("RECOMP_GL_PRESENT"))
+        setenv("RECOMP_GL_PRESENT", "1", 0);
     return xbox_HostWindowMain(boot_and_run);
 }

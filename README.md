@@ -110,7 +110,9 @@ RECOMP_KEYBOARD=1 ./build/uc2_recomp
 
 The Linux framebuffer presenter uses SDL, while the toolkit's D3D8
 compatibility layer targets OpenGL. `RECOMP_FB_WINDOW=1` opens the toolkit's
-host window; omit it to run headless.
+host window. UC2 selects the toolkit's direct OpenGL scanout for that window,
+so the NV2A render target is presented without an SDL texture upload; omit the
+window flag to run headless.
 
 `RECOMP_USB=1` exposes the host's SDL GameController through xboxrecomp's
 emulated Xbox USB/XID gamepad. `RECOMP_KEYBOARD=1` enables the toolkit's
