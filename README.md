@@ -6,9 +6,11 @@ This project is licensed under GPL-3.0-only. See [LICENSE](LICENSE). XboxXBEReco
 
 ## Status
 
-XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The generated Linux executable builds from the local XBE. After the device-aperture mapping fix, three 45-second diagnostic runs stayed open without a guest fault. Their Release logs did not include runtime Info/performance lines, so they did not establish whether the guest reached D3D or submitted frames.
+XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The Linux executable builds from local game files. On an AMD Radeon RX 6700 XT using Vulkan, the 2026-11-10 diagnostic run stayed open for 37 seconds at about 60 FPS and exited cleanly when the window was closed. Audio played, but the display remained black after the loading screen; rendered gameplay is not yet verified.
 
-The Linux fork initially reserved Xbox device apertures as inaccessible memory. The fix is committed in the local XboxXBERecomp checkout as `2206710` (push is pending network access). Direct3D ABI mappings in `config/uc2.toml` are provisional and will be audited as runtime diagnostics expose the next issues. The optimized development build now keeps XboxXBERecomp's boot and per-frame Info logs enabled. Rendered gameplay is not yet verified.
+Commit `34e3dd5` initializes the guest D3D push/fence state through UC2's XDK routine. This fixed the previous guest crash. The available automatic frame capture was taken during an earlier one-draw transition and was black; later in the run, the runtime reported 8–12 draws per frame. A capture from that later state is still needed to trace the black screen.
+
+The Linux fork is built from the separate XboxXBERecomp checkout, with UC2-specific tool changes recorded as patches under `patches/xberecomp/`. The optimized development build keeps boot and per-frame Info logs enabled. The repo is GPL-3.0-only and keeps game files, generated guest code, and build output outside Git.
 
 ## Requirements
 
@@ -39,4 +41,4 @@ The launcher writes a timestamped log to `diagnostic_logs/` and configures frame
 
 ## ABI and graphics work
 
-The title config uses XboxXBERecomp's symbol scanner and register/stack calling-convention mappings. The current D3D mapping list was assembled from the UC2 XBE's generated x86 call sites; it is not yet fully runtime-validated. Use the fault PC, guest registers, and generated instruction comments in `generated/uc2/` to audit each call. Keep generated outputs and game content out of Git.
+The title config uses XboxXBERecomp's symbol scanner and register/stack calling-convention mappings. The XDK 5849 signature scan identified 13 LTCG D3D entry points whose register use differs from the reference library. Their custom ABI mappings are in `config/uc2.toml`; call-site setup in the generated UC2 x86 code supplies additional argument-order evidence. The D3D push-state initializer mapping is verified directly: its caller loads the device into ESI before calling `0x003867A0`, and the callee accesses the device through ESI. The remaining mappings still need broader semantic and runtime validation. Keep generated outputs and game content out of Git.
