@@ -131,6 +131,15 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
         # Patch 0032 broadens the CTF map selector on the same line, so Git
         # cannot reverse-check 0031's context after both patches are present.
         echo "$(basename "$tool_patch") font tracing is already present (extended by 0032)."
+    elif [[ "$(basename "$tool_patch")" == "0035-trace-uc2-wait-handle-bindings.patch" ]] && \
+         rg -q 'UC2 wait-handle\[%u\]' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
+         rg -q 'UC2 ObReferenceObjectByHandle handle=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
+        # Patch 0036 extends the same wait handler, which prevents the reverse
+        # check from recognizing 0035 as applied.
+        echo "$(basename "$tool_patch") diagnostics are already present (extended by 0036)."
+    elif [[ "$(basename "$tool_patch")" == "0036-trace-uc2-wait-raw-arguments.patch" ]] && \
+         rg -q 'UC2 wait raw args=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
+        echo "$(basename "$tool_patch") diagnostics are already present."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

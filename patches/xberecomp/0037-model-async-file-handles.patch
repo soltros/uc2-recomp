@@ -1,0 +1,87 @@
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -96,6 +96,7 @@
+     FILE* fp = nullptr;
+     const Disc::Entry* entry = nullptr;  // on the disc image instead of a host path
+     bool dir = false;
++    bool synchronous = false;
+     uint64_t pos = 0;
+     std::vector<fs::directory_entry> entries;
+     std::vector<const Disc::Entry*> disc_entries;
+@@ -364,11 +365,12 @@
+     f->xbox = Normalize(name);
+     f->entry = e;
+     f->dir = e->dir;
++    f->synchronous = (options & 0x30) != 0;  // FILE_SYNCHRONOUS_IO_ALERT/NONALERT
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, 1);
+     if (TraceUC2LevelIo(name))
+-        LOGI("files: UC2 level opened %s from game disc (%u bytes) handle=%08X", name.c_str(), e->size,
+-             R32(handle_out));
++        LOGI("files: UC2 level opened %s from game disc (%u bytes) handle=%08X options=%08X synchronous=%u",
++             name.c_str(), e->size, R32(handle_out), options, unsigned(f->synchronous));
+     LOG_FIRST(400, "open %s", name.c_str());
+     return kSuccess;
+ }
+@@ -430,6 +432,7 @@
+         f->host = host;
+         f->xbox = Normalize(name);
+         f->dir = true;
++        f->synchronous = (options & 0x30) != 0;
+         W32(handle_out, NewHandle(f));
+         IoStatus(iosb, kSuccess, info);
+         return kSuccess;
+@@ -488,13 +491,15 @@
+     f->host = host;
+     f->xbox = Normalize(name);
+     f->fp = fp;
++    f->synchronous = (options & 0x30) != 0;
+     f->delete_on_close = options & 0x1000;  // FILE_DELETE_ON_CLOSE
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, info);
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = fs::file_size(host, ec);
+-        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X", name.c_str(), host.c_str(),
+-             (unsigned long long)size, R32(handle_out));
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X options=%08X synchronous=%u",
++             name.c_str(), host.c_str(), (unsigned long long)size, R32(handle_out), options,
++             unsigned(f->synchronous));
+         LogGuestStack(ctx, 8);
+     }
+     LOG_FIRST(400, "open %s", name.c_str());
+@@ -519,18 +524,19 @@
+     f->host = host;
+     f->xbox = Normalize(name);
+     f->dir = fs::is_directory(host, ec);
++    f->synchronous = (options & 0x30) != 0;
+     if (!f->dir) {
+         f->fp = std::fopen(host.c_str(), "r+b");
+         if (!f->fp) f->fp = std::fopen(host.c_str(), "rb");
+         if (!f->fp) return kAccessDenied;
+     }
+-    (void)options;
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, 1);
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = f->dir ? 0 : fs::file_size(host, ec);
+-        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X", name.c_str(), host.c_str(),
+-             (unsigned long long)size, R32(handle_out));
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X options=%08X synchronous=%u",
++             name.c_str(), host.c_str(), (unsigned long long)size, R32(handle_out), options,
++             unsigned(f->synchronous));
+         LogGuestStack(ctx, 8);
+     }
+     return kSuccess;
+@@ -592,7 +598,11 @@
+         return Finish(*f, kEndOfFile, 0, event, apc, apc_ctx, iosb);
+     }
+     TraceUC2LevelTransfer(*f, h, write, pos, len, n, kSuccess);
+-    return Finish(*f, kSuccess, n, event, apc, apc_ctx, iosb);
++    uint32_t completed = Finish(*f, kSuccess, n, event, apc, apc_ctx, iosb);
++    // Match Xbox asynchronous file handles: the transfer and IOSB are already
++    // complete here, but callers still receive STATUS_PENDING and observe the
++    // completion by waiting on the file object or supplied event.
++    return f->synchronous ? completed : kPending;
+ }
+ 
+ KERNEL_EXPORT(219, NtReadFile, 8) { return Transfer(ctx, a, false, 0); }
