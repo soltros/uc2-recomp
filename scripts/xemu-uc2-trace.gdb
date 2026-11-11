@@ -138,6 +138,18 @@ commands
   continue
 end
 
+# This caller waits on the file handle when NtReadFile returns STATUS_PENDING.
+# The IOSB is a local at EBP-8; inspect it after the wait to record the actual
+# completion status and byte count rather than only the initial pending result.
+break *0x002626BF
+commands
+  silent
+  printf "UC2 NtReadFile completion wait return pc=%08x handle=%08x status=%08x iosb=%08x\n", $eip, *(unsigned int*)($ebp+8), $eax, $ebp-8
+  printf "  completed I/O status block (status, information): "
+  x/2wx $ebp-8
+  continue
+end
+
 break *0x00262C22
 commands
   silent
