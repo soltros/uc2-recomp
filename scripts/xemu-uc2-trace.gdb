@@ -198,9 +198,11 @@ end
 define uc2-log-read
   set $uc2_read_handle = *(unsigned int*)$esp
   set $uc2_read_event = *(unsigned int*)($esp+4)
+  set $uc2_read_apc = *(unsigned int*)($esp+8)
+  set $uc2_read_apc_ctx = *(unsigned int*)($esp+12)
   set $uc2_read_iosb = *(unsigned int*)($esp+16)
   set $uc2_offset_ptr = *(unsigned int*)($esp+28)
-  printf "UC2 NtReadFile pc=%08x handle=%08x event=%08x iosb=%08x buffer=%08x len=%u offset_ptr=%08x\n", $eip, $uc2_read_handle, $uc2_read_event, $uc2_read_iosb, *(unsigned int*)($esp+20), *(unsigned int*)($esp+24), $uc2_offset_ptr
+  printf "UC2 NtReadFile pc=%08x handle=%08x event=%08x apc=%08x apc_ctx=%08x iosb=%08x buffer=%08x len=%u offset_ptr=%08x\n", $eip, $uc2_read_handle, $uc2_read_event, $uc2_read_apc, $uc2_read_apc_ctx, $uc2_read_iosb, *(unsigned int*)($esp+20), *(unsigned int*)($esp+24), $uc2_offset_ptr
   if $uc2_offset_ptr != 0
     printf "  explicit byte offset (low, high): "
     x/2wx $uc2_offset_ptr
