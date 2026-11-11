@@ -1,0 +1,65 @@
+diff --git a/sdk/runtime/xdk/dsound.cpp b/sdk/runtime/xdk/dsound.cpp
+--- a/sdk/runtime/xdk/dsound.cpp
++++ b/sdk/runtime/xdk/dsound.cpp
+@@ -33,6 +33,10 @@
+ #define SYM_IDirectSound_CreateSoundStream FFFFFF11
+ #define HAS_IDirectSound_CreateSoundStream 0
+ #endif
++#ifndef SYM_DSOUND_Export_B0098
++#define SYM_DSOUND_Export_B0098 FFFFFF12
++#define HAS_DSOUND_Export_B0098 0
++#endif
+ #ifndef SYM_IDirectSound_DownloadEffectsImage
+ #define SYM_IDirectSound_DownloadEffectsImage FFFFFF01
+ #define HAS_IDirectSound_DownloadEffectsImage 0
+@@ -745,7 +749,7 @@
+         SYM(IDirectSoundBuffer_SetFormat), SYM(IDirectSoundBuffer_SetOutputBuffer), SYM(IDirectSoundBuffer_SetRolloffCurve),
+         SYM(IDirectSoundBuffer_StopEx), SYM(IDirectSoundBuffer_Pause), SYM(IDirectSoundBuffer_SetEG),
+         SYM(XAudioDownloadEffectsImage), SYM(DirectSoundCreateBuffer), SYM(IDirectSound_CreateSoundBuffer),
+-        SYM(IDirectSound_CreateSoundStream),
++        SYM(IDirectSound_CreateSoundStream), SYM(DSOUND_Export_B0098),
+         SYM(IDirectSoundBuffer_Release), SYM(IDirectSoundBuffer_Unlock), SYM(IDirectSoundBuffer_SetBufferData),
+         SYM(IDirectSoundBuffer_Play), SYM(IDirectSoundBuffer_Stop), SYM(IDirectSoundBuffer_SetLoopRegion),
+         SYM(IDirectSoundBuffer_GetStatus), SYM(IDirectSoundBuffer_GetCurrentPosition), SYM(IDirectSoundBuffer_SetCurrentPosition),
+@@ -1189,8 +1193,7 @@
+     W32(a[1], v.packets.size() < v.max_packets ? 1u : 0u);  // XMEDIASTATUS_ACCEPT_INPUT
+     return 0;
+ }
+-STREAM(Process, 3) {
+-    uint32_t in = a[1];
++static uint32_t QueueStreamPacket(Voice& v, uint32_t in) {
+     if (!in) return 0;
+     Packet pk{R32(in), R32(in + 4), R32(in + 8), R32(in + 12), R32(in + 16)};
+     if (pk.completed_ptr) W32(pk.completed_ptr, 0);
+@@ -1201,6 +1204,31 @@
+     v.ending = false;
+     return 0;
+ }
++STREAM(Process, 3) { return QueueStreamPacket(v, a[1]); }
++
++// UC2's XACT worker calls the XMediaObject::Process entry with this in EDI.
++// Keep the guest's two-stack-argument ABI while using the host stream state.
++HLE_STDCALL(DSOUND_Export_B0098, 3) {
++    uint32_t r;
++    std::vector<Done> flushed;
++    {
++        std::lock_guard<std::recursive_mutex> lock(g_lock);
++        Voice* v = Find(a[0]);
++        if (v) {
++            r = QueueStreamPacket(*v, a[1]);
++        } else {
++            static bool warned = false;
++            if (!warned) {
++                LOGW("dsound: B0098 Process received unknown stream %08X", a[0]);
++                warned = true;
++            }
++            r = 0x80004005u;
++        }
++        flushed.swap(t_flushed);
++    }
++    Run(ctx, flushed);
++    return r;
++}
+ STREAM(Discontinuity, 1) {
+     if (!v.packets.empty()) v.ending = true;
+     else if (v.active) FlushStream(v);

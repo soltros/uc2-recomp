@@ -50,9 +50,9 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'static uint32_t CreateStream\(uint32_t desc, uint32_t out\)' "$tool_root/sdk/runtime/xdk/dsound.cpp" && \
          rg -q 'HLE_STDCALL\(DirectSoundCreateStream, 2\) \{ return CreateStream\(a\[0\], a\[1\]\); \}' "$tool_root/sdk/runtime/xdk/dsound.cpp" && \
          rg -q 'HLE_STDCALL\(IDirectSound_CreateSoundStream, 4\) \{ return CreateStream\(a\[1\], a\[2\]\); \}' "$tool_root/sdk/runtime/xdk/dsound.cpp"; then
-        # The B0098 diagnostic wrapper edits the same adjacent block, preventing
+        # The B0098 HLE edits the same adjacent block, preventing
         # Git's all-hunks reverse check from recognizing this applied patch.
-        echo "$(basename "$tool_patch") fixes are already present (overlapped by the B0098 diagnostic wrapper)."
+        echo "$(basename "$tool_patch") fixes are already present (overlapped by the B0098 HLE)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
