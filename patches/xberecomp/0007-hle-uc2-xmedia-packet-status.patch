@@ -1,0 +1,40 @@
+diff --git a/sdk/runtime/xdk/dsound.cpp b/sdk/runtime/xdk/dsound.cpp
+--- a/sdk/runtime/xdk/dsound.cpp
++++ b/sdk/runtime/xdk/dsound.cpp
+@@ -33,6 +33,10 @@
+ #define SYM_IDirectSound_CreateSoundStream FFFFFF11
+ #define HAS_IDirectSound_CreateSoundStream 0
+ #endif
++#ifndef SYM_DSOUND_Internal_XMediaPacketStatus
++#define SYM_DSOUND_Internal_XMediaPacketStatus FFFFFF13
++#define HAS_DSOUND_Internal_XMediaPacketStatus 0
++#endif
+ #ifndef SYM_DSOUND_Export_B0098
+ #define SYM_DSOUND_Export_B0098 FFFFFF12
+ #define HAS_DSOUND_Export_B0098 0
+@@ -1229,6 +1233,25 @@
+     Run(ctx, flushed);
+     return r;
+ }
++
++// The UC2 worker calls the in-library packet-status helper at 0x2F687F.
++// The stock code assumes an optional packet context is always present.
++HLE_STDCALL(DSOUND_Internal_XMediaPacketStatus, 2) {
++    if (!g_ds) return 0x80004005u;
++    const uint32_t packet = a[0];
++    const uint32_t context = packet ? R32(packet + 0x14) : 0;
++    if (!context) {
++        static bool warned = false;
++        if (!warned) {
++            LOGW("dsound: UC2 packet status has null context (packet %08X flag %u)", packet, a[1]);
++            warned = true;
++        }
++        return 0;
++    }
++    uint8_t& flags = G<uint8_t>(context + 0x0B);
++    flags = a[1] ? uint8_t(flags | 1u) : uint8_t(flags & 0xFEu);
++    return 0;
++}
+ STREAM(Discontinuity, 1) {
+     if (!v.packets.empty()) v.ending = true;
+     else if (v.active) FlushStream(v);
