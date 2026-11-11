@@ -1,0 +1,11 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -684,3 +684,7 @@
+ }
+ 
+-KERNEL_EXPORT(145, KeSetEvent, 3) { return uint32_t(SetEvent(*FromPointer(a[0]))); }
++KERNEL_EXPORT(145, KeSetEvent, 3) {
++    LOG_FIRST(128, "kernel: KeSetEvent object=%08X increment=%08X wait=%08X caller=%08X", a[0],
++              a[1], a[2], R32(ctx.esp));
++    return uint32_t(SetEvent(*FromPointer(a[0])));
++}

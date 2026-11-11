@@ -146,6 +146,20 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
     elif [[ "$(basename "$tool_patch")" == "0036-trace-uc2-wait-raw-arguments.patch" ]] && \
          rg -q 'UC2 wait raw args=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
         echo "$(basename "$tool_patch") diagnostics are already present."
+    elif [[ "$(basename "$tool_patch")" == "0038-trace-xbox-io-dispatch.patch" ]] && \
+         rg -q 'kernel: IofCallDriver device=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
+         rg -q 'kernel: IofCompleteRequest irp=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
+         rg -q 'kernel: IoStartPacket device=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
+        # Patch 0039 changes IoStartPacket lines in 0038's surrounding hunk,
+        # so the reverse-check no longer recognizes the already-applied I/O logs.
+        echo "$(basename "$tool_patch") diagnostics are already present (extended by 0039)."
+    elif [[ "$(basename "$tool_patch")" == "0040-trace-ke-set-event.patch" ]] && \
+         rg -q 'kernel: KeSetEvent object=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
+        echo "$(basename "$tool_patch") diagnostics are already present."
+    elif [[ "$(basename "$tool_patch")" == "0040-trace-ke-set-event.patch" ]] && \
+         (cd "$tool_root" && patch --dry-run -p1 -i "$tool_patch" >/dev/null 2>&1); then
+        (cd "$tool_root" && patch -p1 -i "$tool_patch")
+        echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
