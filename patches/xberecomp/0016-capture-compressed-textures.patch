@@ -1,0 +1,13 @@
+diff --git a/src/d3d/vulkan_linux.cpp b/src/d3d/vulkan_linux.cpp
+--- a/src/d3d/vulkan_linux.cpp
++++ b/src/d3d/vulkan_linux.cpp
+@@ -3191,7 +3191,8 @@ void VulkanBackend::CaptureTextures(const State& s, const DrawTextures& stages) {
+         bool tg = targets_.count(TargetMapKey(d.data, Format(d.format).depth));
+         fprintf(cap_, " | t%d %08X fmt %X %ux%u%s%s", i, d.data, d.format, d.width, d.height, tg ? " target" : "",
+                 res ? "" : " unbound");
+-        if (res && !tg && stages.info[i].kind == kTex2D && res->format == kBgra && cap_seen_.insert(d.data).second) {
++        // Shrink below samples BC1/2/3 images too; include compressed title textures in captures.
++        if (res && !tg && stages.info[i].kind == kTex2D && cap_seen_.insert(d.data).second) {
+             auto tx = textures_.find(uint64_t(d.data));
+             if (tx != textures_.end()) cap_tex_.push_back({tx->second.res, d.data, d.width, d.height});
+         }
