@@ -1,0 +1,23 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -1052,5 +1052,19 @@ std::shared_ptr<gpu::VertexShader> SelectedShader(uint32_t handle, uint32_t slot) {
+     gpu::VertexShader vs;
+     vs.program = ProgramAt(slot);
++    if (std::all_of(vs.program.begin(), vs.program.end(), [](uint32_t word) { return word == 0; })) {
++        const gpu::VertexShader* source = nullptr;
++        if (handle) {
++            auto it = g_vs.find(handle);
++            if (it != g_vs.end()) source = it->second.get();
++        } else if (g_state.vs) {
++            source = g_state.vs.get();
++        }
++        if (source && !source->program.empty()) {
++            vs.program = source->program;
++            LOG_FIRST(32, "d3d: shader slot %u had no loaded program; using %zu instructions from handle %08X", slot,
++                      vs.program.size() / 4, handle ? handle : g_state.vs_handle);
++        }
++    }
+     vs.program_type = kVertexProgramType;
+     if (handle) {
+         ApplyShaderInputs(handle, vs);
