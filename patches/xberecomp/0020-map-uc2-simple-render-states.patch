@@ -1,0 +1,29 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -746,3 +746,24 @@
+ #else
+-        LOG_FIRST(1, "d3d: SetRenderStateNotInline has no simple-state encoding table in this image");
++        // UC2's XDK render-state encoding table lives in the linked D3D
++        // library, outside this XBE, so signature analysis cannot resolve it.
++        // Preserve the standard 5849 mappings used by the UI and depth path.
++        uint32_t method = 0;
++        switch (rs) {
++            case 14: method = gpu::kMZWriteEnable; break; // ZWRITEENABLE
++            case 15: method = gpu::kMAlphaTestEnable; break;
++            case 19: method = gpu::kMSrcBlend; break;
++            case 20: method = gpu::kMDestBlend; break;
++            case 23: method = gpu::kMZFunc; break;
++            case 24: method = gpu::kMAlphaRef; break;
++            case 25: method = gpu::kMAlphaFunc; break;
++            case 26: method = gpu::kMDitherEnable; break;
++            case 27: method = gpu::kMBlendEnable; break;
++        }
++        if (method) {
++            g_state.simple[method >> 2] = v;
++            if (rs == 15 || rs == 19 || rs == 20 || rs == 24 || rs == 25 || rs == 27)
++                LOG_FIRST(512, "d3d: fallback render state %u value %08X -> method %04X", rs, v, method);
++        } else {
++            LOG_FIRST(32, "d3d: no encoding for simple render state %u value %08X", rs, v);
++        }
+ #endif
