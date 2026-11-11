@@ -49,13 +49,14 @@ define uc2-log-read-result
   printf "UC2 NtReadFile return pc=%08x status=%08x\n", $eip, $eax
 end
 
-# UC2's shared file-open wrapper returns from NtCreateFile here. EBP+8 is
-# its ANSI path argument; EBP-4 receives the resulting Xbox file handle.
+# UC2's shared file-open wrapper returns from NtCreateFile here. It keeps the
+# RtlInitAnsiString buffer at EBP-8; EBP+8 is overwritten with a directory
+# flag while building OBJECT_ATTRIBUTES. EBP-4 receives the resulting handle.
 break *0x002622AF
 commands
   silent
-  set $uc2_path = *(unsigned int*)($ebp+8)
-  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_path
+  set $uc2_path = *(unsigned int*)($ebp-8)
+  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x directory_flag=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_path, *(unsigned int*)($ebp+8)
   if $uc2_path != 0
     x/s $uc2_path
   end
