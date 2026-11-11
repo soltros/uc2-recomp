@@ -24,7 +24,7 @@ With Xemu running, attach a multi-architecture GDB in another terminal:
 gdb-multiarch
 ```
 
-Then enter:
+To inspect the current guest state manually, enter:
 
 ```gdb
 set architecture i386
@@ -33,6 +33,21 @@ info registers
 x/20i $eip
 x/32wx $esp
 ```
+
+For the Aqueduct loading trace, use the checked-in GDB command file instead;
+it logs UC2's shared `NtCreateFile` wrapper return (path, status, handle) and
+every direct `NtReadFile` call site found in the XBE, including the requested
+length and file offset. Start Xemu with the helper, then attach from a second
+terminal:
+
+```sh
+nix shell nixpkgs#gdb -c gdb -q -x scripts/xemu-uc2-trace.gdb 2>&1 \
+  | tee "diagnostic_logs/xemu_guest_$(date +%Y%m%d_%H%M%S).log"
+```
+
+The GDB script automatically continues after each logged call so you can
+navigate to the same CTF-Aqueduct match. Both the Xemu console log and GDB
+trace stay outside the tracked game/source files.
 
 The addresses in `analysis/disasm/asm/text.asm` and the generated recomp map
 directly to the guest's Xbox virtual addresses, so a GDB stop can be correlated
