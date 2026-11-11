@@ -46,6 +46,9 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
         # reverse-check this original multi-file patch as a single unit. Verify
         # its distinct runtime fixes are present before treating it as applied.
         echo "$(basename "$tool_patch") fixes are already present (overlapped by later UC2 patches)."
+    elif [[ "$(basename "$tool_patch")" == "0002-uc2-allocate-fvf-descriptor.patch" ]] && \
+         rg -q 'UC2 has no exported stock FVF shader object' "$tool_root/sdk/runtime/xdk/d3d8.cpp"; then
+        echo "$(basename "$tool_patch") fix is already present (overlapped by later UC2 D3D setup)."
     elif [[ "$(basename "$tool_patch")" == "0005-hle-uc2-directsound-create-stream.patch" ]] && \
          rg -q 'static uint32_t CreateStream\(uint32_t desc, uint32_t out\)' "$tool_root/sdk/runtime/xdk/dsound.cpp" && \
          rg -q 'HLE_STDCALL\(DirectSoundCreateStream, 2\) \{ return CreateStream\(a\[0\], a\[1\]\); \}' "$tool_root/sdk/runtime/xdk/dsound.cpp" && \
@@ -64,6 +67,13 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'UC2 packet status has null context' "$tool_root/sdk/runtime/xdk/dsound.cpp"; then
         # The null-context notification HLE follows the packet status handler.
         echo "$(basename "$tool_patch") fixes are already present (overlapped by the packet-notify HLE)."
+    elif [[ "$(basename "$tool_patch")" == "0009-initialize-uc2-d3d-push-state.patch" ]] && \
+         rg -q 'kDevTimeState = XDK_CDevice_TimeState' "$tool_root/sdk/runtime/xdk/d3d8.cpp" && \
+         rg -q 'GUEST_CALL\(D3D_InitializeDevicePushState, ctx, \{kDevice\}\)' "$tool_root/sdk/runtime/xdk/d3d8.cpp" && \
+         rg -q 'CDevice_TimeState[[:space:]]*=[[:space:]]*0x30' "$tool_root/sdk/xdk/5849/layout.toml"; then
+        # Existing adjacent UC2 renderer patches make Git's reverse check for
+        # this patch's final d3d8.cpp hunk fail despite all changes being present.
+        echo "$(basename "$tool_patch") fixes are already present (overlapped by UC2 D3D setup)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

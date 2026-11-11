@@ -59,6 +59,7 @@ crt_sqrt                                             = 0
 crt_tan                                              = 0
 D3D_BlockOnResource                                  = 0
 D3D_BlockOnTime                                      = 0x386B30
+D3D_InitializeDevicePushState                        = 0x3867A0
 D3D_InitDefaultState                                 = 0
 D3D_InternalAddRef                                   = 0
 D3D_InternalRelease = 0x380FD0
@@ -271,6 +272,8 @@ D3D_DeferredTextureState    = 0x3911D8
 D3D_Device                  = 0x3913E0
 D3D_DirtyFlags              = 0x393890
 D3D_IndexData               = 0x394738
+D3D_PushBufferSegmentSize   = 0x394788
+D3D_PushBufferPoolSize      = 0x39478C
 D3D_pDevice                 = 0x393888
 D3D_RenderState             = 0x393898
 D3D_SimpleRenderStateEncode = 0
@@ -284,6 +287,7 @@ XPP_MemoryUnitType          = 0x3949A8
 # convention: a register (eax ebx ecx edx esi edi ebp) or "stack" for the next stack slot, which the callee pops
 [abi]
 CDevice_KickOff = ["edx"]
+D3D_InitializeDevicePushState = ["esi"]
 D3DDevice_DrawVertices = ["stack", "ecx", "eax"]
 D3DDevice_SelectVertexShader = ["eax", "ebx"]
 D3DDevice_SetIndices = ["ebx", "stack"]

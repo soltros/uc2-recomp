@@ -1,0 +1,51 @@
+diff --git a/sdk/xdk/5849/layout.toml b/sdk/xdk/5849/layout.toml
+--- a/sdk/xdk/5849/layout.toml
++++ b/sdk/xdk/5849/layout.toml
+@@ -22,2 +22,3 @@
+ CDevice_Time              = 0x2C   # D3D_KickOffAndWaitForIdle 0x4A17A5 passes it to D3D_BlockOnTime, D3D_SetFence 0x4A1475 adds 2
++CDevice_TimeState         = 0x30   # UC2's recompiled D3D helpers 0x386490 and 0x386B30 dereference this pointer
+ CDevice_PixelShader       = 0x784  # D3DDevice_SetPixelShader 0x4A5CE8 stores the handle
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -80,5 +80,6 @@ constexpr uint32_t kSimpleEncode = SYM(D3D_SimpleRenderStateEncode);
+ constexpr uint32_t kDevPush = XDK_CDevice_Push, kDevThreshold = XDK_CDevice_PushThreshold,
+                    kDevBaseVertex = XDK_CDevice_BaseVertex, kDevIndexBuffer = XDK_CDevice_IndexBuffer,
++                   kDevTimeState = XDK_CDevice_TimeState,
+                    kDevTextures = XDK_CDevice_Textures, kDevRenderTarget = XDK_CDevice_RenderTarget,
+                    kDevDepth = XDK_CDevice_Depth, kDevSwapCount = XDK_CDevice_SwapCount,
+                    kDevBackBuffer = XDK_CDevice_BackBuffer, kDevFrontBuffer = XDK_CDevice_FrontBuffer,
+@@ -353,4 +354,4 @@ HLE_STDCALL(Direct3D_CreateDevice, 6) {
+     XDK_REQUIRE("d3d", XDK_KEY(CDevice_Push), XDK_KEY(CDevice_PushThreshold), XDK_KEY(CDevice_BaseVertex),
+-                XDK_KEY(CDevice_IndexBuffer), XDK_KEY(CDevice_ZScale), XDK_KEY(CDevice_SuperSampleX),
++                XDK_KEY(CDevice_IndexBuffer), XDK_KEY(CDevice_TimeState), XDK_KEY(CDevice_ZScale), XDK_KEY(CDevice_SuperSampleX),
+                 XDK_KEY(CDevice_SuperSampleY), XDK_KEY(CDevice_Transforms), XDK_KEY(CDevice_Textures),
+                 XDK_KEY(CDevice_RenderTarget), XDK_KEY(CDevice_Depth), XDK_KEY(CDevice_BackBuffer),
+@@ -365,3 +366,11 @@ HLE_STDCALL(Direct3D_CreateDevice, 6) {
+     std::memset(HostPtr(kDevice), 0, XDK_CDevice_Size);
+     W32(kDevicePtr, kDevice);
++    // The title's XDK device initializer reads these image globals when it
++    // constructs the push-buffer bookkeeping used by internal D3D routines.
++    W32(SYM(D3D_PushBufferPoolSize), 0x80000);
++    W32(SYM(D3D_PushBufferSegmentSize), 0x8000);
++    uint32_t time_state = mem::AllocSystem(0x60, 16);
++    if (!time_state) return 0x8007000Eu;
++    std::memset(HostPtr(time_state), 0, 0x60);
++    SetDev(kDevTimeState, time_state);
+     ScratchPush();
+@@ -427,2 +427,15 @@ HLE_STDCALL(Direct3D_CreateDevice, 6) {
++    // Run the XDK's guest-side initialization for the D3D push/fence state.
++    // The host renderer still owns command submission, but guest D3D helpers
++    // also inspect this state directly (including the pointer at CDevice+0x30).
++    uint32_t push_init = GUEST_CALL(D3D_InitializeDevicePushState, ctx, {kDevice});
++    if (static_cast<int32_t>(push_init) < 0) {
++        LOGE("d3d: guest push-state initialization failed: %08X", push_init);
++        return push_init;
++    }
++    // Keep the XDK helper's bookkeeping allocations, while directing subsequent
++    // host-rendered commands back through our own scratch buffer.
++    SetDev(kDevPush, g_scratch_push);
++    SetDev(kDevThreshold, g_scratch_push + g_scratch_size - 0x1000);
++    g_walk = g_scratch_push;
+     if (kVBlank) {
+         // notification event, signalled
