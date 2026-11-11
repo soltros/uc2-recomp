@@ -1,0 +1,25 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -935,7 +935,19 @@ HLE_STDCALL(D3DDevice_SetVertexShader, 1) {
+     if (h & 1) {
+         auto it = g_vs.find(h);
+         if (it != g_vs.end()) {
+-            g_state.vs = it->second;
++            const auto& source = it->second;
++            bool uc2_position_only = source->program.size() == 4 && source->program[0] == 0 &&
++                                     source->program[1] == 0x0020001B && source->program[2] == 0x0836106C &&
++                                     source->program[3] == 0x2070F801;
++            if (uc2_position_only) {
++                auto screen_shader = std::make_shared<gpu::VertexShader>(*source);
++                screen_shader->program.clear();
++                screen_shader->pretransformed = true;
++                g_state.vs = std::move(screen_shader);
++                LOG_FIRST(8, "d3d: bound UC2 position-only shader %08X as screen-space fixed function", h);
++            } else {
++                g_state.vs = source;
++            }
+             // constants declared with the shader load when it is selected
+-            for (auto& [reg, v] : it->second->constants)
++            for (auto& [reg, v] : source->constants)
+                 if (reg < 192) g_state.vsc[reg] = v;
