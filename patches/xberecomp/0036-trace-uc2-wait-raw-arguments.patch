@@ -1,0 +1,12 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -650,2 +650,9 @@ KERNEL_EXPORT(235, NtWaitForMultipleObjectsEx, 6) {
+     std::vector<ObjectRef> objs;
++    if (a[0] == 2) {
++        static std::atomic<uint32_t> raw_samples{0};
++        uint32_t sample = raw_samples.fetch_add(1, std::memory_order_relaxed);
++        if (sample < 16 || sample % 64 == 0)
++            LOGI("kernel: UC2 wait raw args=%08X/%08X/%08X/%08X/%08X/%08X",
++                 a[0], a[1], a[2], a[3], a[4], a[5]);
++    }
+     for (uint32_t i = 0; i < a[0]; i++) {
