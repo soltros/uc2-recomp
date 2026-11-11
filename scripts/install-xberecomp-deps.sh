@@ -13,7 +13,7 @@ fi
 replace=(
     shaderc vulkan-loader libx11 libxext libxrandr libxcursor libxi
     libxfixes libxrender libxkbcommon libxcb wayland libdecor libffi pipewire
-    libpulseaudio alsa-lib systemd libxscrnsaver libxtst
+    libpulseaudio alsa-lib systemd wayland-scanner libxscrnsaver libxtst
     libxinerama libdrm libgbm libthai fribidi libusb1
     libjack2 sndio
 )
@@ -37,6 +37,7 @@ installables=(
     'nixpkgs#libpulseaudio^out,dev'
     'nixpkgs#alsa-lib^out,dev'
     'nixpkgs#systemd^out,dev,man'
+    'nixpkgs#wayland-scanner'
     'nixpkgs#libxscrnsaver'
     'nixpkgs#libxtst'
     'nixpkgs#libxinerama^out,dev'

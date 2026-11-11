@@ -20,6 +20,17 @@ export CMAKE_PREFIX_PATH="$profile${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 export VULKAN_SDK="${VULKAN_SDK:-$profile}"
 export LD_LIBRARY_PATH="$profile/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+# SDL's Wayland backend needs wayland-scanner at configure time. On NixOS it
+# may already be in the store through another package without being on PATH.
+if ! command -v wayland-scanner >/dev/null 2>&1; then
+    for candidate in /nix/store/*-wayland-scanner-*-bin/bin; do
+        if [[ -x "$candidate/wayland-scanner" ]]; then
+            export PATH="$candidate:$PATH"
+            break
+        fi
+    done
+fi
+
 # Wayland's pkg-config metadata declares libffi as a dependency. The runtime
 # package can be in the Nix store closure without its development output being
 # merged into the profile, so expose libffi.pc when available.
