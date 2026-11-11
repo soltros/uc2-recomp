@@ -50,10 +50,14 @@ define uc2-log-read
 end
 
 define uc2-log-read-result
-  printf "UC2 NtReadFile return pc=%08x status=%08x iosb=%08x\n", $eip, $eax, $uc2_read_iosb
-  if $uc2_read_iosb != 0
+  # At the caller return address, the original NtReadFile arguments are
+  # still on the stack. Recover IOSB from this thread's own stack rather than
+  # a global GDB convenience variable that another guest thread can replace.
+  set $uc2_result_iosb = *(unsigned int*)($esp+16)
+  printf "UC2 NtReadFile return pc=%08x status=%08x iosb=%08x\n", $eip, $eax, $uc2_result_iosb
+  if $uc2_result_iosb != 0
     printf "  I/O status block (status, information): "
-    x/2wx $uc2_read_iosb
+    x/2wx $uc2_result_iosb
   end
 end
 
