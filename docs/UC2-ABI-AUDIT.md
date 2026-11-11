@@ -38,6 +38,12 @@ Generated-code cross-check: UC2 has seven direct calls to ordinal 219, returning
 
 The file HLE now records `FILE_SYNCHRONOUS_IO_ALERT`/`FILE_SYNCHRONOUS_IO_NONALERT` from the open options. It still transfers bytes inline, but for successful I/O on an asynchronous handle it writes a completed IOSB and signals the file object/event, then returns `STATUS_PENDING`. This lets UC2's pending-read path wait on the file handle and inspect the IOSB as it does on Xbox. Traced Aqueduct opens now include their option bits and synchronous/asynchronous classification, so the next run can confirm this path is being selected. The transfer itself is not yet dispatched asynchronously on a host worker, and this change has not yet been validated in a match-load run.
 
+## Kernel I/O dispatch ABI evidence
+
+Static call-site inspection confirms the calling conventions for UC2's imported I/O dispatch routines. At `0x00318306`, the XNET caller places the device object in ECX and the IRP in EDX before calling `IofCallDriver`, matching XboxXBERecomp's two-register fastcall handler. XPP call sites such as `0x0039C174`, `0x0039C1CD`, and `0x0039C410` place the IRP in ECX and zero in EDX before calling `IofCompleteRequest`, matching its fastcall mapping. Nearby instructions write IRP status and information at offsets `+0x10` and `+0x14`.
+
+At `0x0039C187`, XPP pushes key `0`, IRP from ECX, then device object from EDI before calling `IoStartPacket`; this is the expected right-to-left stack order for ordinal 83's three arguments. At `0x0039C1D5`, it pushes one device-object pointer before `IoStartNextPacket`, matching ordinal 81's one stack argument. These mappings are supported by disassembly, not by runtime execution. The inspected XPP initialization also exits its device-creation loop when `IoCreateDevice` returns a negative status; XboxXBERecomp currently returns `STATUS_UNSUCCESSFUL` there. The packet and completion calls therefore may belong to an inactive peripheral-device path and are not yet tied to the match-load stall. The diagnostic build logs whether those stubs are reached during a match load.
+
 ## Current conclusion
 
 The mappings above have a mixture of direct call-site evidence and partial runtime evidence. They should remain explicit in the title config because the executable's D3D8 library is LTCG and does not follow the reference library's default convention. A rendered gameplay frame and follow-up run are still needed to validate the draw path end to end.
