@@ -1,0 +1,30 @@
+diff --git a/sdk/runtime/xdk/dsound.cpp b/sdk/runtime/xdk/dsound.cpp
+--- a/sdk/runtime/xdk/dsound.cpp
++++ b/sdk/runtime/xdk/dsound.cpp
+@@ -33,6 +33,10 @@
+ #define SYM_IDirectSound_CreateSoundStream FFFFFF11
+ #define HAS_IDirectSound_CreateSoundStream 0
+ #endif
++#ifndef SYM_DSOUND_Export_B0098
++#define SYM_DSOUND_Export_B0098 FFFFFF12
++#define HAS_DSOUND_Export_B0098 0
++#endif
+ #ifndef SYM_IDirectSound_DownloadEffectsImage
+ #define SYM_IDirectSound_DownloadEffectsImage FFFFFF01
+ #define HAS_IDirectSound_DownloadEffectsImage 0
+@@ -1129,6 +1133,15 @@
+ // IDirectSound::CreateSoundStream(this, desc, out, outer)
+ HLE_STDCALL(IDirectSound_CreateSoundStream, 4) { return CreateStream(a[1], a[2]); }
+ 
++// Trace UC2's unnamed DSOUND entry before its original implementation runs.
++HLE_WRAP(DSOUND_Export_B0098, 3) {
++    uint32_t self = a[0];
++    uint32_t subobject = self ? R32(self + 0x10) : 0;
++    uint32_t field_b0 = subobject ? R32(subobject + 0xB0) : 0;
++    LOGI("dsound: B0098 this=%08X arg1=%08X arg2=%08X this+10=%08X [this+10]+B0=%08X",
++         self, a[1], a[2], subobject, field_b0);
++}
++
+ #define STREAM(name, nargs)                                     \
+     static uint32_t str_##name(Voice& v, const Args& a);        \
+     HLE_STDCALL(CDirectSoundStream_##name, nargs) {             \
