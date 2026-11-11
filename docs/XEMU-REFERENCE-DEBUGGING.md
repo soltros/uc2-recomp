@@ -46,8 +46,11 @@ nix shell nixpkgs#gdb -c gdb -q -x scripts/xemu-uc2-trace.gdb 2>&1 \
 ```
 
 The GDB script automatically continues after each logged call so you can
-navigate to the same CTF-Aqueduct match. Both the Xemu console log and GDB
-trace stay outside the tracked game/source files.
+navigate to the same CTF-Aqueduct match. It also records the match worker's
+context and handles at startup, then logs any non-timeout wait result or
+consumed completion. This distinguishes a missing Xemu signal from a worker
+that wakes but fails to advance. Both the Xemu console log and GDB trace stay
+outside the tracked game/source files.
 
 The addresses in `analysis/disasm/asm/text.asm` and the generated recomp map
 directly to the guest's Xbox virtual addresses, so a GDB stop can be correlated

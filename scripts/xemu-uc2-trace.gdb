@@ -3,6 +3,37 @@ set confirm off
 set architecture i386
 target remote localhost:1234
 
+# The match-load worker is UC2's routine at 0x2E780. Its context is passed
+# on the stack; sub_2EA50 polls two handles in that context and processes a
+# completion only after the wait leaves STATUS_TIMEOUT (0x102).
+break *0x0002E780
+commands
+  silent
+  set $uc2_worker_ctx = *(unsigned int*)($esp+4)
+  printf "UC2 match worker start ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $uc2_worker_ctx, *(unsigned int*)($uc2_worker_ctx+0x0c), *(unsigned int*)($uc2_worker_ctx+0x10), *(unsigned int*)($uc2_worker_ctx+0xb4), *(unsigned int*)($uc2_worker_ctx+0xb8)
+  x/7wx $uc2_worker_ctx+0xbc
+  continue
+end
+
+# At this point EAX is the result of the worker's wait-for-multiple-objects.
+# Ignore ordinary timeout polls and stop only when Xemu reports a signal or
+# another wait result, then log and continue automatically.
+break *0x0002EAA8 if $eax != 0x102
+commands
+  silent
+  printf "UC2 match worker wait result=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  continue
+end
+
+# A nonzero result from sub_2E310 indicates that the worker consumed a
+# completion condition. Log only that transition, not every polling loop.
+break *0x0002EAB3 if $eax != 0
+commands
+  silent
+  printf "UC2 match worker processed completion result=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  continue
+end
+
 define uc2-log-read
   printf "UC2 NtReadFile pc=%08x handle=%08x event=%08x iosb=%08x buffer=%08x len=%u offset_ptr=%08x\n", $eip, *(unsigned int*)$esp, *(unsigned int*)($esp+4), *(unsigned int*)($esp+16), *(unsigned int*)($esp+20), *(unsigned int*)($esp+24), *(unsigned int*)($esp+28)
   x/gx *(unsigned int*)($esp+28)
