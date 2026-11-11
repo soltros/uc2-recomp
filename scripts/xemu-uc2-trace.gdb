@@ -3,6 +3,25 @@ set confirm off
 set architecture i386
 target remote localhost:1234
 
+# Capture the raw six-argument wait call at UC2's worker polling site. The
+# recomp logs the same values before resolving its emulated handles.
+set $uc2_wait_count = 0
+break *0x002667DE
+commands
+  silent
+  set $uc2_wait_count = $uc2_wait_count + 1
+  if $uc2_wait_count <= 16 || $uc2_wait_count % 64 == 0
+    set $uc2_wait_n = *(unsigned int*)$esp
+    set $uc2_wait_handles = *(unsigned int*)($esp+4)
+    printf "UC2 NtWaitForMultipleObjectsEx args=%08x/%08x/%08x/%08x/%08x/%08x", $uc2_wait_n, $uc2_wait_handles, *(unsigned int*)($esp+8), *(unsigned int*)($esp+12), *(unsigned int*)($esp+16), *(unsigned int*)($esp+20)
+    if $uc2_wait_n == 2 && $uc2_wait_handles != 0
+      printf " handles=%08x/%08x", *(unsigned int*)$uc2_wait_handles, *(unsigned int*)($uc2_wait_handles+4)
+    end
+    printf "\n"
+  end
+  continue
+end
+
 # The match-load worker is UC2's routine at 0x2E780. Its context is passed
 # on the stack; sub_2EA50 polls two handles in that context and processes a
 # completion only after the wait leaves STATUS_TIMEOUT (0x102).
