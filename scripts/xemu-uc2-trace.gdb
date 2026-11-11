@@ -6,6 +6,8 @@ target remote localhost:1234
 # Capture the raw six-argument wait call at UC2's worker polling site. The
 # recomp logs the same values before resolving its emulated handles.
 set $uc2_wait_count = 0
+set $uc2_main_event_handle = 0
+set $uc2_single_wait_count = 0
 set $uc2_worker_h0_0 = 0
 set $uc2_worker_h1_0 = 0
 set $uc2_worker_h0_1 = 0
@@ -26,6 +28,42 @@ commands
       printf " handles=%08x/%08x", *(unsigned int*)$uc2_wait_handles, *(unsigned int*)($uc2_wait_handles+4)
     end
     printf "\n"
+  end
+  continue
+end
+
+# Trace the game's single-object wait wrapper as well as the XPP worker. The
+# long-lived load transition waits here on its main event (or on a null,
+# infinite timeout while waiting on that event).
+break *0x00266760
+commands
+  silent
+  set $uc2_single_wait_count = $uc2_single_wait_count + 1
+  set $uc2_single_wait_handle = *(unsigned int*)$esp
+  set $uc2_single_wait_alertable = *(unsigned int*)($esp+8)
+  set $uc2_single_wait_timeout_ptr = *(unsigned int*)($esp+12)
+  if $uc2_single_wait_timeout_ptr == 0
+    set $uc2_main_event_handle = $uc2_single_wait_handle
+    printf "UC2 infinite NtWaitForSingleObjectEx handle=%08x alertable=%u timeout=null\n", $uc2_single_wait_handle, $uc2_single_wait_alertable
+  else
+    set $uc2_single_wait_timeout = *(long long*)$uc2_single_wait_timeout_ptr
+    if $uc2_single_wait_timeout == 0x7fffffffffffffff
+      set $uc2_main_event_handle = $uc2_single_wait_handle
+      printf "UC2 infinite NtWaitForSingleObjectEx handle=%08x alertable=%u timeout=%lld\n", $uc2_single_wait_handle, $uc2_single_wait_alertable, $uc2_single_wait_timeout
+    else
+      if $uc2_single_wait_count <= 8 || $uc2_single_wait_count % 128 == 0
+        printf "UC2 NtWaitForSingleObjectEx handle=%08x alertable=%u timeout=%lld\n", $uc2_single_wait_handle, $uc2_single_wait_alertable, $uc2_single_wait_timeout
+      end
+    end
+  end
+  continue
+end
+
+break *0x00266766
+commands
+  silent
+  if $uc2_main_event_handle != 0 && *(unsigned int*)($ebp+8) == $uc2_main_event_handle
+    printf "UC2 main single wait return handle=%08x status=%08x\n", *(unsigned int*)($ebp+8), $eax
   end
   continue
 end
@@ -66,7 +104,7 @@ break *0x002665EC
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtSetEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
@@ -76,7 +114,7 @@ break *0x002665F8
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtSetEvent return handle=%08x status=%08x\n", $uc2_event_handle, $eax
   end
   continue
@@ -86,7 +124,7 @@ break *0x0026660C
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtClearEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
@@ -96,7 +134,7 @@ break *0x00266616
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtClearEvent return handle=%08x status=%08x\n", $uc2_event_handle, $eax
   end
   continue
@@ -106,7 +144,7 @@ break *0x0026662A
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtPulseEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
