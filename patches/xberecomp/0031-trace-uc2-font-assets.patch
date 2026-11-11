@@ -1,0 +1,11 @@
+diff --git a/sdk/runtime/kernel/files.cpp b/sdk/runtime/kernel/files.cpp
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -54,6 +54,7 @@
+         "CTF-DOWNFALL",
+         "K_MALE.UKX", "K_FEMALE.UKX", "K_SKAARJ.UKX", "K_WEAPONS.UKX", "K_PICKUPS.UKX",
+         "T_CHARACTERSKINS.UTX", "T_PORTRAIT.UTX", "GUICONTENT.UTX", "T_MENU_02.UTX", "T_UI.UTX", "T_UI_2.UTX",
++        "T_FONTS.UTX", "T_FONTS2.UTX", "PS2FONTS.UTX", "WARFAREFONTS.UTX", "T_HUD.UTX", "INTRO_CHARACTERS.UTX",
+     };
+     for (const char* name : traced)
+         if (upper.find(name) != std::string::npos) return true;
