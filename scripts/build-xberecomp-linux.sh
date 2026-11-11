@@ -117,6 +117,10 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'UC2 file %s rejected handle=%08X' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by later UC2 file-trace patches)."
+    elif [[ "$(basename "$tool_patch")" == "0029-trace-uc2-character-assets.patch" ]] && \
+         rg -q 'K_MALE\.UKX' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'T_CHARACTERSKINS\.UTX' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by later UC2 asset-trace patches)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

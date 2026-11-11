@@ -1,0 +1,12 @@
+diff --git a/sdk/runtime/kernel/files.cpp b/sdk/runtime/kernel/files.cpp
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -51,7 +51,7 @@ bool TraceUC2LevelIo(const std::string& path) {
+     if (!TraceUC2IoEnabled()) return false;
+     const std::string upper = Upper(path);
+     static constexpr const char* traced[] = {
+-        "CTF-DOWNFALL",
++        "CTF-",
+         "K_MALE.UKX", "K_FEMALE.UKX", "K_SKAARJ.UKX", "K_WEAPONS.UKX", "K_PICKUPS.UKX",
+         "T_CHARACTERSKINS.UTX", "T_PORTRAIT.UTX", "GUICONTENT.UTX", "T_MENU_02.UTX", "T_UI.UTX", "T_UI_2.UTX",
+         "T_FONTS.UTX", "T_FONTS2.UTX", "PS2FONTS.UTX", "WARFAREFONTS.UTX", "T_HUD.UTX", "INTRO_CHARACTERS.UTX",
