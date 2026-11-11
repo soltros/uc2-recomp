@@ -1,0 +1,31 @@
+diff --git a/sdk/runtime/kernel/objects.cpp b/sdk/runtime/kernel/objects.cpp
+--- a/sdk/runtime/kernel/objects.cpp
++++ b/sdk/runtime/kernel/objects.cpp
+@@ -258,7 +258,7 @@ uint32_t Wait(const std::vector<ObjectRef>& objs, bool wait_all, int64_t timeout, bool alertable) {
+             LOGI("kernel: thread %X wait[%u] object[%zu] type=%u guest=%08X",
+                  self->id, sample, i, obj ? unsigned(obj->type) : 0xFF, obj ? obj->guest : 0);
+         }
+-        if (sample < 2 && self->ctx) LogGuestStack(*self->ctx, 8);
++        if (self->ctx) LogGuestStack(*self->ctx, 8);
+     }
+     SuspendPoint();
+     uint32_t r = WaitFor(objs, wait_all, timeout, alertable);
+@@ -270,5 +270,9 @@ int32_t SetEvent(Object& o) {
+     std::lock_guard<std::mutex> lock(g_dispatch);
+     int32_t old = o.signal;
++    if (o.guest == 0xB0000C40) {
++        LOGI("kernel: UC2 load event set guest=%08X previous=%d", o.guest, old);
++        if (Thread* self = Current(); self && self->ctx) LogGuestStack(*self->ctx, 8);
++    }
+     SetSignal(o, 1);
+     g_cv.notify_all();
+     return old;
+@@ -278,4 +282,8 @@ int32_t ResetEvent(Object& o) {
+     std::lock_guard<std::mutex> lock(g_dispatch);
+     int32_t old = o.signal;
++    if (o.guest == 0xB0000C40) {
++        LOGI("kernel: UC2 load event reset guest=%08X previous=%d", o.guest, old);
++        if (Thread* self = Current(); self && self->ctx) LogGuestStack(*self->ctx, 8);
++    }
+     SetSignal(o, 0);
+     return old;
