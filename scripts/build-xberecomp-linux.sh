@@ -104,6 +104,10 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'UC2 load event set guest=%08X' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
          rg -q 'if \(self->ctx\) LogGuestStack\(\*self->ctx, 8\)' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by 0025)."
+    elif [[ "$(basename "$tool_patch")" == "0025-trace-uc2-load-event.patch" ]] && \
+         rg -q 'UC2 load event set guest=%08X' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
+         rg -q 'UC2 load event reset guest=%08X' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by worker-event diagnostics)."
     elif [[ "$(basename "$tool_patch")" == "0024-trace-uc2-level-file-io.patch" ]] && \
          rg -q 'TraceUC2LevelTransfer' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then

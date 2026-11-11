@@ -1,0 +1,10 @@
+--- a/sdk/runtime/kernel/objects.cpp
++++ b/sdk/runtime/kernel/objects.cpp
+@@ -310,6 +310,7 @@ int32_t PulseEvent(Object& o) {
+     std::lock_guard<std::mutex> lock(g_dispatch);
+     int32_t old = o.signal;
+     SetSignal(o, 1);
++    TraceUC2WorkerEvent(o, "pulse", old);
+     g_cv.notify_all();
+     return old;
+ }
