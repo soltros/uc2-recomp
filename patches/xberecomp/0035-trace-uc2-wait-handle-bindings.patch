@@ -1,0 +1,35 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -1,4 +1,5 @@
+ #include <algorithm>
++#include <atomic>
+ #include <cctype>
+ #include <chrono>
+ #include <cstdio>
+@@ -649,7 +650,15 @@ KERNEL_EXPORT(234, NtWaitForSingleObjectEx, 4) {
+ KERNEL_EXPORT(235, NtWaitForMultipleObjectsEx, 6) {
+     std::vector<ObjectRef> objs;
+     for (uint32_t i = 0; i < a[0]; i++) {
+-        ObjectRef o = FromHandle(R32(a[1] + i * 4));
++        uint32_t h = R32(a[1] + i * 4);
++        ObjectRef o = FromHandle(h);
+         if (!o) return kInvalidHandle;
++        if (a[0] == 2) {
++            static std::atomic<uint32_t> samples{0};
++            uint32_t sample = samples.fetch_add(1, std::memory_order_relaxed);
++            if (sample < 16 || sample % 64 == 0)
++                LOGI("kernel: UC2 wait-handle[%u] thread=%X handle=%08X type=%u guest=%08X signal=%d",
++                     i, Current() ? Current()->id : 0, h, unsigned(o->type), o->guest, o->signal);
++        }
+         objs.push_back(o);
+     }
+@@ -678,6 +687,9 @@ KERNEL_EXPORT(246, ObReferenceObjectByHandle, 3) {
+         Bind(o, body);
+     }
+     W32(a[2], o->guest);
++    if (o->type == ObjType::File)
++        LOGI("kernel: UC2 ObReferenceObjectByHandle handle=%08X guest=%08X output=%08X",
++             h, o->guest, a[2]);
+     return kSuccess;
+ }
+ 
