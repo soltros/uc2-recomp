@@ -37,6 +37,15 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
     elif git -C "$tool_root" apply --check "$tool_patch"; then
         git -C "$tool_root" apply "$tool_patch"
         echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
+    elif [[ "$(basename "$tool_patch")" == "0001-uc2-runtime-fixes.patch" ]] && \
+         rg -q 'map_device_window' "$tool_root/sdk/runtime/kernel/memory.cpp" && \
+         rg -q 'kNv2aBase' "$tool_root/sdk/runtime/kernel/memory.h" && \
+         rg -q 'applied unset texture-stage defaults' "$tool_root/sdk/runtime/xdk/d3d8.cpp" && \
+         rg -q 'HAS_D3D_SimpleRenderStateEncode' "$tool_root/sdk/runtime/xdk/d3d8.cpp"; then
+        # Later UC2 patches edit adjacent lines in d3d8.cpp, so Git cannot
+        # reverse-check this original multi-file patch as a single unit. Verify
+        # its distinct runtime fixes are present before treating it as applied.
+        echo "$(basename "$tool_patch") fixes are already present (overlapped by later UC2 patches)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
