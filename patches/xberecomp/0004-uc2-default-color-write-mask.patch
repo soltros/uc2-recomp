@@ -1,0 +1,15 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+index 0000000..0000000 100644
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -249,5 +249,10 @@ void ApplyDefaultStates(X86Context& ctx) {
+         set_if_unset(gpu::kTssResultArg, 1);  // CURRENT
+     }
++    // The XDK color mask has one enable bit in each ARGB byte. Its default
++    // enables every channel; without the image's initializer zero disables all
++    // fragment writes, leaving every presented frame black.
++    if (!g_state.simple[gpu::kMColorWriteEnable >> 2])
++        g_state.simple[gpu::kMColorWriteEnable >> 2] = 0x01010101;
+     LOG_FIRST(1, "d3d: image has no D3D_InitDefaultState; applied unset texture-stage defaults");
+ #endif
+ }
