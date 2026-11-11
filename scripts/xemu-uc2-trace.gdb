@@ -25,12 +25,13 @@ commands
   continue
 end
 
-# A nonzero result from sub_2E310 indicates that the worker consumed a
-# completion condition. Log only that transition, not every polling loop.
-break *0x0002EAB3 if $eax != 0
+# This point follows sub_2E310, which the worker calls only after a
+# non-timeout wait result. Record zero as well as nonzero returns so the
+# reference trace shows whether a wake was consumed or ignored.
+break *0x0002EAB3
 commands
   silent
-  printf "UC2 match worker processed completion result=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  printf "UC2 match worker sub_2E310 return=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
   continue
 end
 
