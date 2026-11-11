@@ -46,15 +46,17 @@ nix shell nixpkgs#gdb -c gdb -q -x scripts/xemu-uc2-trace.gdb 2>&1 \
 ```
 
 The GDB script automatically continues after each logged call so you can
-navigate to the same CTF-Aqueduct match. It also records the match worker's
-context and handles at startup, then logs any non-timeout wait result or
-consumed completion. This distinguishes a missing Xemu signal from a worker
-that wakes but fails to advance. Both the Xemu console log and GDB trace stay
-outside the tracked game/source files.
+navigate to the same CTF-Aqueduct match. It records the match worker's context
+and handle pair, samples all six raw wait arguments at the call site, and
+traces set, clear, or pulse calls on that pair. It also logs non-timeout wait
+results and completion-handler entry/return. Compare those records with the
+recomp's `UC2 wait raw args` and `UC2 wait-handle` lines to distinguish a
+handle-resolution mismatch from an event that never gets signaled. Both the
+Xemu console log and GDB trace stay outside the tracked game/source files.
 
 The addresses in `analysis/disasm/asm/text.asm` and the generated recomp map
 directly to the guest's Xbox virtual addresses, so a GDB stop can be correlated
-with the same guest code that XboxXBERecomp translates. We will add targeted
-breakpoints for the Aqueduct load once the reference trace identifies the
-relevant guest call sites; tracing every frame or every short wait would stall
-the emulator and produce excessive logs.
+with the same guest code that XboxXBERecomp translates. The wait and event
+breakpoints are sampled or filtered to the active match worker's handles;
+tracing every frame or every short wait would stall the emulator and produce
+excessive logs.
