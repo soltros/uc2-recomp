@@ -1,28 +1,36 @@
 diff --git a/sdk/runtime/kernel/objects.cpp b/sdk/runtime/kernel/objects.cpp
-index c57c57c..cc13fef 100644
+index c57c57c..bbb575c 100644
 --- a/sdk/runtime/kernel/objects.cpp
 +++ b/sdk/runtime/kernel/objects.cpp
-@@ -232,9 +232,23 @@ static uint32_t WaitFor(const std::vector<ObjectRef>& objs, bool wait_all, int64
+@@ -232,9 +232,31 @@ static uint32_t WaitFor(const std::vector<ObjectRef>& objs, bool wait_all, int64
  }
  
  uint32_t Wait(const std::vector<ObjectRef>& objs, bool wait_all, int64_t timeout, bool alertable) {
 +    Thread* self = Current();
 +    // UC2's first match transition can stop making visible progress while the
-+    // title keeps presenting its loading screen. Record waits made by the
-+    // later guest threads so a diagnostic log can distinguish a blocked
++    // title keeps presenting its loading screen. Sample waits from the long-
++    // lived guest threads so a diagnostic log can distinguish a blocked
 +    // worker from a guest-side busy loop without flooding normal boot logs.
-+    if (self && self->id >= 0x34) {
++    uint32_t sample = 0;
++    bool trace = false;
++    if (self && self->id >= 0x2C) {
++        static std::mutex trace_lock;
++        static std::unordered_map<uint32_t, uint32_t> samples;
++        std::lock_guard<std::mutex> lock(trace_lock);
++        sample = samples[self->id]++;
++        trace = sample < 12 || (sample % 64) == 0;
++    }
++    if (trace) {
 +        uint32_t first_guest = objs.empty() || !objs.front() ? 0 : objs.front()->guest;
 +        uint32_t first_type = objs.empty() || !objs.front() ? 0xFF : uint32_t(objs.front()->type);
-+        LOG_FIRST(128, "kernel: thread %X wait enter count=%zu all=%u alertable=%u timeout=%lld first=%u/%08X",
-+                  self->id, objs.size(), unsigned(wait_all), unsigned(alertable), (long long)timeout,
++        LOGI("kernel: thread %X wait[%u] enter count=%zu all=%u alertable=%u timeout=%lld first=%u/%08X",
++                  self->id, sample, objs.size(), unsigned(wait_all), unsigned(alertable), (long long)timeout,
 +                  first_type, first_guest);
 +    }
      SuspendPoint();
      uint32_t r = WaitFor(objs, wait_all, timeout, alertable);
      SuspendPoint();
-+    if (self && self->id >= 0x34)
-+        LOG_FIRST(128, "kernel: thread %X wait return status=%08X", self->id, r);
++    if (trace) LOGI("kernel: thread %X wait[%u] return status=%08X", self->id, sample, r);
      return r;
  }
  
