@@ -1,0 +1,18 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -728,4 +728,7 @@
+     uint32_t method = a[0] & 0x1FFC, value = a[1];
++    if (method == gpu::kMBlendEnable || method == gpu::kMSrcBlend || method == gpu::kMDestBlend ||
++        method == gpu::kMAlphaTestEnable || method == gpu::kMAlphaFunc || method == gpu::kMAlphaRef)
++        LOG_FIRST(512, "d3d: simple render state method %04X value %08X", method, value);
+     g_state.simple[method >> 2] = value;
+     return 0;
+ }
+@@ -740,4 +743,6 @@
+     if (rs < gpu::kRsDeferredFirst) {
+ #if HAS_D3D_SimpleRenderStateEncode
+         uint32_t method = R32(kSimpleEncode + rs * 4) & 0x1FFC;
++        if (rs == 15 || rs == 19 || rs == 20 || rs == 24 || rs == 25 || rs == 27)
++            LOG_FIRST(512, "d3d: render state %u value %08X encodes to method %04X", rs, v, method);
+         g_state.simple[method >> 2] = v;
