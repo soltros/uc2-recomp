@@ -38,3 +38,4 @@
 # Local runtime diagnostics.
 /xbox_kernel.log
 /diagnostic_logs/
+/dev_screenshots/
