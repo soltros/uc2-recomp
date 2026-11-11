@@ -1,0 +1,50 @@
+diff --git a/sdk/runtime/xdk/dsound.cpp b/sdk/runtime/xdk/dsound.cpp
+--- a/sdk/runtime/xdk/dsound.cpp
++++ b/sdk/runtime/xdk/dsound.cpp
+@@ -37,7 +37,15 @@
+ #define SYM_DSOUND_Export_B0098 FFFFFF12
+ #define HAS_DSOUND_Export_B0098 0
+ #endif
++#ifndef SYM_DSOUND_Internal_XMediaPacketNotify
++#define SYM_DSOUND_Internal_XMediaPacketNotify FFFFFF14
++#define HAS_DSOUND_Internal_XMediaPacketNotify 0
++#endif
++#ifndef SYM_DSOUND_Internal_XMediaPacketUpdate
++#define SYM_DSOUND_Internal_XMediaPacketUpdate FFFFFF15
++#define HAS_DSOUND_Internal_XMediaPacketUpdate 0
++#endif
+ #ifndef SYM_IDirectSound_DownloadEffectsImage
+ #define SYM_IDirectSound_DownloadEffectsImage FFFFFF01
+ #define HAS_IDirectSound_DownloadEffectsImage 0
+ #endif
+@@ -1252,6 +1256,30 @@
+     flags = a[1] ? uint8_t(flags | 1u) : uint8_t(flags & 0xFEu);
+     return 0;
+ }
++
++// UC2's packet helper is also called with a null optional pvContext.
++// Preserve the XDK implementation for non-null contexts; skip only the
++// unavailable notification path when its callback context is absent.
++X86_EXTERN_FUNC(GUEST_ORIG(DSOUND_Internal_XMediaPacketNotify));
++X86_FUNC(GUEST(DSOUND_Internal_XMediaPacketNotify)) {
++    const uint32_t packet = ::kernel::R32(ctx.esp + 4);
++    if (!packet || !::kernel::R32(packet + 0x10)) {
++        ::kernel::Return(ctx, 0, 2);
++        return;
++    }
++    GUEST_ORIG(DSOUND_Internal_XMediaPacketNotify)(ctx, base);
++}
++
++// XDK packet processing assumes its callback object is valid. A null optional
++// context cannot pass the callback's flag check, so return INVALIDCALL.
++X86_EXTERN_FUNC(GUEST_ORIG(DSOUND_Internal_XMediaPacketUpdate));
++X86_FUNC(GUEST(DSOUND_Internal_XMediaPacketUpdate)) {
++    if (!ctx.ecx) {
++        ::kernel::Return(ctx, 0x88780032u, 1);
++        return;
++    }
++    GUEST_ORIG(DSOUND_Internal_XMediaPacketUpdate)(ctx, base);
++}
+ STREAM(Discontinuity, 1) {
+     if (!v.packets.empty()) v.ending = true;
+     else if (v.active) FlushStream(v);
