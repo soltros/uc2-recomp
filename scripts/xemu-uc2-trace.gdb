@@ -21,7 +21,17 @@ end
 break *0x0002EAA8 if $eax != 0x102
 commands
   silent
-  printf "UC2 match worker wait result=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  printf "UC2 match worker wait result=%08x ctx=%08x ebx_gate=%08x previous_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, $ebx, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  continue
+end
+
+# At this call site the worker has tested EBX and is about to run the
+# completion handler. Logging entry distinguishes a signaled wait that the
+# worker ignores from one it actually consumes.
+break *0x0002EAAE
+commands
+  silent
+  printf "UC2 match worker completion call ctx=%08x wait_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $esi, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
   continue
 end
 
