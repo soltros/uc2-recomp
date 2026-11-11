@@ -11,6 +11,12 @@ trace = [0x00255B20, 0x002A6E6E]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
 
+# A null optional lookup array is an empty result, not a readable object at VA 0.
+[[hook]]
+at = 0x002A6C62
+call = "UC2_NullLookupArray"
+on_true = 0x002A6CFC
+
 # extra entry points
 [functions]
 
