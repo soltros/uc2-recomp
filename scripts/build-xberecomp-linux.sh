@@ -100,6 +100,14 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'Trace long waits from the main guest threads too' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
          rg -q 'wait\[%u\] object\[%zu\]' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by 0023)."
+    elif [[ "$(basename "$tool_patch")" == "0023-trace-uc2-long-waits.patch" ]] && \
+         rg -q 'UC2 load event set guest=%08X' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
+         rg -q 'if \(self->ctx\) LogGuestStack\(\*self->ctx, 8\)' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by 0025)."
+    elif [[ "$(basename "$tool_patch")" == "0024-trace-uc2-level-file-io.patch" ]] && \
+         rg -q 'TraceUC2LevelTransfer' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by 0026)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

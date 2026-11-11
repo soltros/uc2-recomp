@@ -1,0 +1,17 @@
+diff --git a/sdk/runtime/kernel/files.cpp b/sdk/runtime/kernel/files.cpp
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -479,5 +479,6 @@ KERNEL_EXPORT(190, NtCreateFile, 9) {
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = fs::file_size(host, ec);
+         LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
+              (unsigned long long)size);
++        LogGuestStack(ctx, 8);
+     }
+@@ -514,5 +515,6 @@ KERNEL_EXPORT(202, NtOpenFile, 6) {
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = f->dir ? 0 : fs::file_size(host, ec);
+         LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
+              (unsigned long long)size);
++        LogGuestStack(ctx, 8);
+     }
