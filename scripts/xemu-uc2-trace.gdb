@@ -113,7 +113,9 @@ end
 break *0x002665F8
 commands
   silent
-  set $uc2_event_handle = *(unsigned int*)($esp+4)
+  # NtSetEvent is stdcall(2). The wrapper's pushed APC-status pointer is
+  # still at [ESP], so its event handle remains at [ESP+8] after return.
+  set $uc2_event_handle = *(unsigned int*)($esp+8)
   if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtSetEvent return handle=%08x status=%08x\n", $uc2_event_handle, $eax
   end
@@ -153,7 +155,8 @@ end
 break *0x00266636
 commands
   silent
-  set $uc2_event_handle = *(unsigned int*)($esp+4)
+  # NtPulseEvent uses the same two-argument wrapper shape as NtSetEvent.
+  set $uc2_event_handle = *(unsigned int*)($esp+8)
   if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtPulseEvent return handle=%08x status=%08x\n", $uc2_event_handle, $eax
   end
