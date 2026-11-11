@@ -1,0 +1,49 @@
+--- a/sdk/runtime/kernel/objects.cpp
++++ b/sdk/runtime/kernel/objects.cpp
+@@ -255,8 +255,9 @@
+              self->id, sample, objs.size(), unsigned(wait_all), unsigned(alertable), (long long)timeout);
+         for (size_t i = 0; i < objs.size(); i++) {
+             const ObjectRef& obj = objs[i];
+-            LOGI("kernel: thread %X wait[%u] object[%zu] type=%u guest=%08X",
+-                 self->id, sample, i, obj ? unsigned(obj->type) : 0xFF, obj ? obj->guest : 0);
++            LOGI("kernel: thread %X wait[%u] object[%zu] type=%u guest=%08X signal=%d notification=%u",
++                 self->id, sample, i, obj ? unsigned(obj->type) : 0xFF, obj ? obj->guest : 0,
++                 obj ? obj->signal : 0, obj ? unsigned(obj->notification) : 0);
+         }
+         if (self->ctx) LogGuestStack(*self->ctx, 8);
+     }
+@@ -267,6 +268,18 @@
+     return r;
+ }
+ 
++static void TraceUC2WorkerEvent(const Object& o, const char* action, int32_t previous) {
++    if (o.guest != 0xB016F850 && o.guest != 0xB016F860) return;
++    static uint32_t samples[2]{};  // Set/reset callers hold g_dispatch.
++    uint32_t index = o.guest == 0xB016F850 ? 0 : 1;
++    uint32_t sample = samples[index]++;
++    if (sample < 16 || (sample % 64) == 0) {
++        LOGI("kernel: UC2 worker event %s guest=%08X previous=%d current=%d sample=%u",
++             action, o.guest, previous, o.signal, sample);
++        if (Thread* self = Current(); self && self->ctx) LogGuestStack(*self->ctx, 8);
++    }
++}
++
+ int32_t SetEvent(Object& o) {
+     std::lock_guard<std::mutex> lock(g_dispatch);
+     int32_t old = o.signal;
+@@ -275,6 +288,7 @@
+         if (Thread* self = Current(); self && self->ctx) LogGuestStack(*self->ctx, 8);
+     }
+     SetSignal(o, 1);
++    TraceUC2WorkerEvent(o, "set", old);
+     g_cv.notify_all();
+     return old;
+ }
+@@ -287,6 +301,7 @@
+         if (Thread* self = Current(); self && self->ctx) LogGuestStack(*self->ctx, 8);
+     }
+     SetSignal(o, 0);
++    TraceUC2WorkerEvent(o, "reset", old);
+     return old;
+ }
+ 
