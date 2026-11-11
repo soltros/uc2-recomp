@@ -6,8 +6,14 @@ target remote localhost:1234
 # Capture the raw six-argument wait call at UC2's worker polling site. The
 # recomp logs the same values before resolving its emulated handles.
 set $uc2_wait_count = 0
-set $uc2_worker_h0 = 0
-set $uc2_worker_h1 = 0
+set $uc2_worker_h0_0 = 0
+set $uc2_worker_h1_0 = 0
+set $uc2_worker_h0_1 = 0
+set $uc2_worker_h1_1 = 0
+set $uc2_worker_h0_2 = 0
+set $uc2_worker_h1_2 = 0
+set $uc2_worker_h0_3 = 0
+set $uc2_worker_h1_3 = 0
 break *0x002667DE
 commands
   silent
@@ -31,8 +37,14 @@ break *0x0002E780
 commands
   silent
   set $uc2_worker_ctx = *(unsigned int*)($esp+4)
-  set $uc2_worker_h0 = *(unsigned int*)($uc2_worker_ctx+0x0c)
-  set $uc2_worker_h1 = *(unsigned int*)($uc2_worker_ctx+0x10)
+  set $uc2_worker_h0_3 = $uc2_worker_h0_2
+  set $uc2_worker_h1_3 = $uc2_worker_h1_2
+  set $uc2_worker_h0_2 = $uc2_worker_h0_1
+  set $uc2_worker_h1_2 = $uc2_worker_h1_1
+  set $uc2_worker_h0_1 = $uc2_worker_h0_0
+  set $uc2_worker_h1_1 = $uc2_worker_h1_0
+  set $uc2_worker_h0_0 = *(unsigned int*)($uc2_worker_ctx+0x0c)
+  set $uc2_worker_h1_0 = *(unsigned int*)($uc2_worker_ctx+0x10)
   printf "UC2 match worker start ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $uc2_worker_ctx, *(unsigned int*)($uc2_worker_ctx+0x0c), *(unsigned int*)($uc2_worker_ctx+0x10), *(unsigned int*)($uc2_worker_ctx+0xb4), *(unsigned int*)($uc2_worker_ctx+0xb8)
   x/7wx $uc2_worker_ctx+0xbc
   continue
@@ -44,7 +56,7 @@ break *0x002665EC
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_worker_h0 != 0 && ($uc2_event_handle == $uc2_worker_h0 || $uc2_event_handle == $uc2_worker_h1)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtSetEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
@@ -54,7 +66,7 @@ break *0x0026660C
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_worker_h0 != 0 && ($uc2_event_handle == $uc2_worker_h0 || $uc2_event_handle == $uc2_worker_h1)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtClearEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
@@ -64,7 +76,7 @@ break *0x0026662A
 commands
   silent
   set $uc2_event_handle = *(unsigned int*)($esp+4)
-  if $uc2_worker_h0 != 0 && ($uc2_event_handle == $uc2_worker_h0 || $uc2_event_handle == $uc2_worker_h1)
+  if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtPulseEvent handle=%08x caller=%08x\n", $uc2_event_handle, *(unsigned int*)$esp
   end
   continue
