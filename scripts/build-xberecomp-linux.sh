@@ -34,7 +34,7 @@ fi
 for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
     if git -C "$tool_root" apply --reverse --check "$tool_patch" >/dev/null 2>&1; then
         echo "$(basename "$tool_patch") is already applied."
-    elif git -C "$tool_root" apply --check "$tool_patch"; then
+    elif git -C "$tool_root" apply --check "$tool_patch" >/dev/null 2>&1; then
         git -C "$tool_root" apply "$tool_patch"
         echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
     elif [[ "$(basename "$tool_patch")" == "0001-uc2-runtime-fixes.patch" ]] && \
