@@ -121,6 +121,12 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'K_MALE\.UKX' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'T_CHARACTERSKINS\.UTX' "$tool_root/sdk/runtime/kernel/files.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by later UC2 asset-trace patches)."
+    elif [[ "$(basename "$tool_patch")" == "0031-trace-uc2-font-assets.patch" ]] && \
+         rg -q 'T_FONTS\.UTX.*T_FONTS2\.UTX.*PS2FONTS\.UTX.*WARFAREFONTS\.UTX.*T_HUD\.UTX.*INTRO_CHARACTERS\.UTX' \
+             "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        # Patch 0032 broadens the CTF map selector on the same line, so Git
+        # cannot reverse-check 0031's context after both patches are present.
+        echo "$(basename "$tool_patch") font tracing is already present (extended by 0032)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
