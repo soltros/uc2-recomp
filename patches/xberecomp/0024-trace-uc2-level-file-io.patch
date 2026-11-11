@@ -1,0 +1,100 @@
+diff --git a/sdk/runtime/kernel/files.cpp b/sdk/runtime/kernel/files.cpp
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -2,6 +2,7 @@
+ #include <cctype>
+ #include <chrono>
+ #include <cstdio>
++#include <cstdlib>
+ #include <filesystem>
+ #include <fstream>
+ #include <map>
+@@ -38,6 +39,14 @@
+     return out;
+ }
+ 
++bool TraceUC2LevelIo(const std::string& path) {
++    static const bool enabled = [] {
++        const char* value = std::getenv("XBE_TRACE_LEVEL_IO");
++        return value && *value && *value != '0';
++    }();
++    return enabled && Upper(path).find("CTF-DOWNFALL") != std::string::npos;
++}
++
+ // host lookup that ignores case on file systems that do not
+ fs::path MatchCase(const fs::path& dir, const std::vector<std::string>& parts) {
+     fs::path cur = dir;
+@@ -90,6 +99,22 @@
+     }
+ };
+ 
++void TraceUC2LevelTransfer(const File& f, bool write, uint64_t pos, uint32_t requested, uint32_t actual,
++                           uint32_t status) {
++    if (!TraceUC2LevelIo(f.xbox)) return;
++    static std::mutex lock;
++    static std::unordered_map<std::string, uint64_t> counts;
++    uint64_t sample;
++    {
++        std::lock_guard<std::mutex> guard(lock);
++        sample = counts[f.xbox]++;
++    }
++    if (sample < 32 || (sample % 256) == 0)
++        LOGI("files: UC2 level %s[%llu] %s offset=%llu requested=%u actual=%u status=%08X",
++             write ? "write" : "read", (unsigned long long)sample, f.xbox.c_str(), (unsigned long long)pos,
++             requested, actual, status);
++}
++
+ struct Link : Object {
+     std::string target;
+     Link() : Object(ObjType::SymLink) {}
+@@ -327,6 +352,8 @@
+     f->dir = e->dir;
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, 1);
++    if (TraceUC2LevelIo(name))
++        LOGI("files: UC2 level opened %s from game disc (%u bytes)", name.c_str(), e->size);
+     LOG_FIRST(400, "open %s", name.c_str());
+     return kSuccess;
+ }
+@@ -449,6 +476,11 @@
+     f->delete_on_close = options & 0x1000;  // FILE_DELETE_ON_CLOSE
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, info);
++    if (TraceUC2LevelIo(name)) {
++        uint64_t size = fs::file_size(host, ec);
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
++             (unsigned long long)size);
++    }
+     LOG_FIRST(400, "open %s", name.c_str());
+     return kSuccess;
+ }
+@@ -479,6 +511,11 @@
+     (void)options;
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, 1);
++    if (TraceUC2LevelIo(name)) {
++        uint64_t size = f->dir ? 0 : fs::file_size(host, ec);
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
++             (unsigned long long)size);
++    }
+     return kSuccess;
+ }
+ 
+@@ -517,8 +554,15 @@
+         if (done < chunk) break;
+     }
+     f->pos = pos + n;
+-    if (write && n < len) return Finish(*f, 0xC000007F, n, event, apc, apc_ctx, iosb);  // disk full
+-    if (!write && len && !n) return Finish(*f, kEndOfFile, 0, event, apc, apc_ctx, iosb);
++    if (write && n < len) {
++        TraceUC2LevelTransfer(*f, write, pos, len, n, 0xC000007F);
++        return Finish(*f, 0xC000007F, n, event, apc, apc_ctx, iosb);  // disk full
++    }
++    if (!write && len && !n) {
++        TraceUC2LevelTransfer(*f, write, pos, len, n, kEndOfFile);
++        return Finish(*f, kEndOfFile, 0, event, apc, apc_ctx, iosb);
++    }
++    TraceUC2LevelTransfer(*f, write, pos, len, n, kSuccess);
+     return Finish(*f, kSuccess, n, event, apc, apc_ctx, iosb);
+ }
+ 

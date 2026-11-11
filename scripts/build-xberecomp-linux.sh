@@ -96,6 +96,10 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'auto unique_stamp =' "$tool_root/src/d3d/vulkan_linux.cpp" && \
          rg -q 'CaptureRequested\(\)' "$tool_root/src/d3d/vulkan_linux.cpp"; then
         echo "$(basename "$tool_patch") fix is already present."
+    elif [[ "$(basename "$tool_patch")" == "0022-diagnose-uc2-load-waits.patch" ]] && \
+         rg -q 'Trace long waits from the main guest threads too' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
+         rg -q 'wait\[%u\] object\[%zu\]' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by 0023)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

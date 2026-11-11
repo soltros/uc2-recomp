@@ -60,6 +60,7 @@ echo "  stop:       close the game window when finished" | tee -a "$log"
 set +e
 "$repo_root/scripts/with-xberecomp-nix-env.sh" env \
     XBE_PERF=1 \
+    XBE_TRACE_LEVEL_IO=1 \
     XBE_CAPTURE_DIR="$capture_dir" \
     "$binary" >>"$log" 2>&1 &
 runner_pid=$!
