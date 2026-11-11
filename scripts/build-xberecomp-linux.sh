@@ -121,6 +121,12 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'UC2 file %s rejected handle=%08X' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by later UC2 file-trace patches)."
+    elif [[ "$(basename "$tool_patch")" == "0028-trace-uc2-open-handles.patch" ]] && \
+         rg -q 'opened .*handle=%08X options=%08X synchronous=%u' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'R32\(handle_out\), options' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        # The asynchronous-file model extends the same open diagnostics with
+        # CreateOptions; recognize the earlier handle-tracing patch as applied.
+        echo "$(basename "$tool_patch") tracing is already present (extended by 0037)."
     elif [[ "$(basename "$tool_patch")" == "0029-trace-uc2-character-assets.patch" ]] && \
          rg -q 'K_MALE\.UKX' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'T_CHARACTERSKINS\.UTX' "$tool_root/sdk/runtime/kernel/files.cpp"; then
