@@ -1,0 +1,15 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -1314,3 +1314,10 @@
+-KERNEL_EXPORT(83, IoStartPacket, 3) { return 0; }
+-KERNEL_EXPORT(81, IoStartNextPacket, 1) { return 0; }
++KERNEL_EXPORT(83, IoStartPacket, 3) {
++    LOG_FIRST(128, "kernel: IoStartPacket device=%08X irp=%08X key=%08X caller=%08X",
++              a[0], a[1], a[2], R32(ctx.esp));
++    return 0;
++}
++KERNEL_EXPORT(81, IoStartNextPacket, 1) {
++    LOG_FIRST(128, "kernel: IoStartNextPacket device=%08X caller=%08X", a[0], R32(ctx.esp));
++    return 0;
++}
+ KERNEL_EXPORT(359, IoMarkIrpMustComplete, 1) { return 0; }
