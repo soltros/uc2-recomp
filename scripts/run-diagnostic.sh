@@ -9,7 +9,6 @@ stamp="$(date +%Y%m%d_%H%M%S)"
 log="diagnostic_logs/xberecomp_${stamp}.log"
 capture_dir="${XBE_CAPTURE_DIR:-$repo_root/diagnostic_logs/xberecomp_frames}"
 mkdir -p "$capture_dir"
-watchdog_secs="${RECOMP_WATCHDOG_SECS:-${UC2_DIAG_WATCHDOG_SECS:-0}}"
 capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-}"
 capture_interval_secs="${RECOMP_CAPTURE_INTERVAL_SECS:-1}"
 
@@ -25,10 +24,6 @@ if [[ ! -x "$binary" ]]; then
     echo "error: XboxXBERecomp executable not found: $binary" >&2
     echo "Set UC2_XBERECOMP_BIN to its path." >&2
     exit 1
-fi
-if [[ ! "$watchdog_secs" =~ ^[0-9]+$ ]]; then
-    echo "error: RECOMP_WATCHDOG_SECS must be a non-negative integer" >&2
-    exit 2
 fi
 if [[ -n "$capture_after_secs" && ! "$capture_after_secs" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
     echo "error: RECOMP_CAPTURE_AFTER_SECS must be comma-separated non-negative seconds" >&2
@@ -50,11 +45,6 @@ if [[ -x "$compiler" ]]; then
     fi
 fi
 
-runner=("$binary")
-if ((watchdog_secs > 0)); then
-    runner=(timeout --signal=TERM --kill-after=5s "${watchdog_secs}s" "$binary")
-fi
-
 echo "XboxXBERecomp UC2 diagnostic run" | tee "$log"
 echo "  executable: $binary" | tee -a "$log"
 echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)" | tee -a "$log"
@@ -65,20 +55,17 @@ else
     capture_description="every ${capture_interval_secs}s"
 fi
 echo "  captures:   $capture_dir (automatic captures $capture_description; F3 also works)" | tee -a "$log"
-if ((watchdog_secs > 0)); then
-    echo "  watchdog:   ${watchdog_secs}s" | tee -a "$log"
-fi
+echo "  stop:       close the game window when finished" | tee -a "$log"
 
 set +e
 "$repo_root/scripts/with-xberecomp-nix-env.sh" env \
     XBE_PERF=1 \
     XBE_CAPTURE_DIR="$capture_dir" \
-    "${runner[@]}" >>"$log" 2>&1 &
+    "$binary" >>"$log" 2>&1 &
 runner_pid=$!
 
 # The Linux fork installs SIGUSR1 as a frame-capture request (the same action
-# as F3). Walk through timeout's child when the watchdog is enabled so the
-# signal reaches uc2_recomp itself.
+# as F3). Walk through wrapper processes so the signal reaches uc2_recomp.
 capture_pid=""
 if [[ "$capture_after_secs" != "0" ]]; then
     (
