@@ -10,7 +10,8 @@ log="diagnostic_logs/xberecomp_${stamp}.log"
 capture_dir="${XBE_CAPTURE_DIR:-$repo_root/diagnostic_logs/xberecomp_frames}"
 mkdir -p "$capture_dir"
 watchdog_secs="${RECOMP_WATCHDOG_SECS:-${UC2_DIAG_WATCHDOG_SECS:-0}}"
-capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-8,16,30,35,40}"
+capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-}"
+capture_interval_secs="${RECOMP_CAPTURE_INTERVAL_SECS:-2}"
 
 if [[ -n "${UC2_XBERECOMP_BIN:-}" ]]; then
     binary="$UC2_XBERECOMP_BIN"
@@ -29,8 +30,12 @@ if [[ ! "$watchdog_secs" =~ ^[0-9]+$ ]]; then
     echo "error: RECOMP_WATCHDOG_SECS must be a non-negative integer" >&2
     exit 2
 fi
-if [[ ! "$capture_after_secs" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+if [[ -n "$capture_after_secs" && ! "$capture_after_secs" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
     echo "error: RECOMP_CAPTURE_AFTER_SECS must be comma-separated non-negative seconds" >&2
+    exit 2
+fi
+if [[ ! "$capture_interval_secs" =~ ^[1-9][0-9]*$ ]]; then
+    echo "error: RECOMP_CAPTURE_INTERVAL_SECS must be a positive integer" >&2
     exit 2
 fi
 
@@ -54,7 +59,12 @@ echo "XboxXBERecomp UC2 diagnostic run" | tee "$log"
 echo "  executable: $binary" | tee -a "$log"
 echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)" | tee -a "$log"
 echo "  log:        $log" | tee -a "$log"
-echo "  captures:   $capture_dir (automatic captures at ${capture_after_secs}s; F3 also works)" | tee -a "$log"
+if [[ -n "$capture_after_secs" ]]; then
+    capture_description="at ${capture_after_secs}s"
+else
+    capture_description="every ${capture_interval_secs}s"
+fi
+echo "  captures:   $capture_dir (automatic captures $capture_description; F3 also works)" | tee -a "$log"
 if ((watchdog_secs > 0)); then
     echo "  watchdog:   ${watchdog_secs}s" | tee -a "$log"
 fi
@@ -72,16 +82,9 @@ runner_pid=$!
 capture_pid=""
 if [[ "$capture_after_secs" != "0" ]]; then
     (
-        previous=0
-        IFS=',' read -r -a capture_times <<<"$capture_after_secs"
-        for capture_time in "${capture_times[@]}"; do
-            delay=$((capture_time - previous))
-            previous=$capture_time
-            if ((delay > 0)); then
-                sleep "$delay"
-            fi
+        request_capture() {
             if ! kill -0 "$runner_pid" 2>/dev/null; then
-                break
+                return 1
             fi
             target_pid="$runner_pid"
             while child_pid="$(pgrep -P "$target_pid" 2>/dev/null | head -n 1)" && [[ -n "$child_pid" ]]; do
@@ -92,7 +95,26 @@ if [[ "$capture_after_secs" != "0" ]]; then
             else
                 echo "[diagnostic] automatic frame capture at ${capture_time}s failed for pid $target_pid" >>"$log"
             fi
-        done
+            return 0
+        }
+
+        if [[ -n "$capture_after_secs" ]]; then
+            previous=0
+            IFS=',' read -r -a capture_times <<<"$capture_after_secs"
+            for capture_time in "${capture_times[@]}"; do
+                delay=$((capture_time - previous))
+                previous=$capture_time
+                if ((delay > 0)); then sleep "$delay"; fi
+                request_capture || break
+            done
+        else
+            capture_time=0
+            while kill -0 "$runner_pid" 2>/dev/null; do
+                sleep "$capture_interval_secs"
+                capture_time=$((capture_time + capture_interval_secs))
+                request_capture || break
+            done
+        fi
     ) &
     capture_pid=$!
 fi
