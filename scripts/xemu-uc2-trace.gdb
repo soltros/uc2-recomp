@@ -56,14 +56,25 @@ define uc2-log-read-result
   end
 end
 
-# UC2's shared file-open wrapper returns from NtCreateFile here. It keeps the
-# RtlInitAnsiString buffer at EBP-8; EBP+8 is overwritten with a directory
-# flag while building OBJECT_ATTRIBUTES. EBP-4 receives the resulting handle.
+# The shared file-open wrapper loads its path argument into EDI immediately
+# before converting it to a counted string. Capture it here, before the
+# wrapper reuses its stack arguments to build OBJECT_ATTRIBUTES. The kernel
+# call returns at 0x2622AF, where EBP-4 contains the output handle.
+break *0x002621E7
+commands
+  silent
+  set $uc2_path = $edi
+  printf "UC2 NtCreateFile path input pc=%08x ptr=%08x\n", $eip, $uc2_path
+  if $uc2_path != 0
+    x/s $uc2_path
+  end
+  continue
+end
+
 break *0x002622AF
 commands
   silent
-  set $uc2_path = *(unsigned int*)($ebp-8)
-  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x directory_flag=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_path, *(unsigned int*)($ebp+8)
+  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_path
   if $uc2_path != 0
     x/s $uc2_path
   end
