@@ -77,6 +77,8 @@ The two additional `NtReadFile` sites also match the export's eight-stack-argume
 
 Both callers push the eight parameters in right-to-left order, matching `KERNEL_EXPORT(219, NtReadFile, 8)`. No stack-arity or argument-order mismatch is evident at these sites. Their acceptance of `STATUS_PENDING` means the remaining concern is the I/O completion behavior and when the guest consumes the destination buffer, not the call convention itself.
 
+A full search of the XBE module disassembly and import labels finds no `NtReadFileScatter` symbol or call site. XboxXBERecomp's scatter-read HLE therefore is not an alternate UC2 map-package read path missing from this trace; ordinary `NtReadFile` calls remain the file-transfer path to follow.
+
 Another caller at `0x002626A7` explicitly waits on the file handle when `NtReadFile` returns `STATUS_PENDING`, then consumes the IOSB at `[EBP-8]`. The Xemu trace script now records that post-wait IOSB status and information count, allowing a reference run to show whether pending reads complete with bytes and whether the file-handle wait returns successfully.
 
 The worker's control flow qualifies those wait results: at `0x2EA70` it examines the previous wait result and context fields at `+0xB4`/`+0xB8` to set `EBX`; after the next wait returns, it calls `sub_2E310` only when that gate is nonzero. So `STATUS_WAIT_1` proves a handle signaled, but by itself does not prove the completion handler ran. The Xemu trace script now records `EBX`, the prior result, the relevant context fields, and entry to the completion call; this will show whether the signaled handle is accepted by the worker's state machine.
