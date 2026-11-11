@@ -1,0 +1,21 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -1314,8 +1314,16 @@
+ KERNEL_EXPORT(83, IoStartPacket, 3) { return 0; }
+ KERNEL_EXPORT(81, IoStartNextPacket, 1) { return 0; }
+ KERNEL_EXPORT(359, IoMarkIrpMustComplete, 1) { return 0; }
+-KERNEL_FASTCALL(86, IofCallDriver) { return kUnsuccessful; }
+-KERNEL_FASTCALL(87, IofCompleteRequest) { return 0; }
++KERNEL_FASTCALL(86, IofCallDriver) {
++    LOG_FIRST(128, "kernel: IofCallDriver device=%08X irp=%08X caller=%08X", ctx.ecx, ctx.edx,
++              R32(ctx.esp));
++    return kUnsuccessful;
++}
++KERNEL_FASTCALL(87, IofCompleteRequest) {
++    LOG_FIRST(128, "kernel: IofCompleteRequest irp=%08X priority=%08X caller=%08X", ctx.ecx, ctx.edx,
++              R32(ctx.esp));
++    return 0;
++}
+ 
+ // crypto
+ 
