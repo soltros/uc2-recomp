@@ -78,10 +78,9 @@ end
 break *0x002621E7
 commands
   silent
-  set $uc2_path = $edi
-  printf "UC2 NtCreateFile path input pc=%08x ptr=%08x\n", $eip, $uc2_path
-  if $uc2_path != 0
-    x/s $uc2_path
+  printf "UC2 NtCreateFile path input pc=%08x ptr=%08x\n", $eip, $edi
+  if $edi != 0
+    x/s $edi
   end
   continue
 end
@@ -89,9 +88,10 @@ end
 break *0x002622AF
 commands
   silent
-  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_path
-  if $uc2_path != 0
-    x/s $uc2_path
+  set $uc2_return_path = *(unsigned int*)($ebp+8)
+  printf "UC2 NtCreateFile return pc=%08x status=%08x handle=%08x path_ptr=%08x\n", $eip, $eax, *(unsigned int*)($ebp-4), $uc2_return_path
+  if $uc2_return_path != 0
+    x/s $uc2_return_path
   end
   continue
 end
