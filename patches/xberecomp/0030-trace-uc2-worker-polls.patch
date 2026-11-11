@@ -1,0 +1,12 @@
+diff --git a/sdk/runtime/kernel/objects.cpp b/sdk/runtime/kernel/objects.cpp
+--- a/sdk/runtime/kernel/objects.cpp
++++ b/sdk/runtime/kernel/objects.cpp
+@@ -242,7 +242,7 @@
+     // Trace long waits from the main guest threads too. A match-load stall
+     // can be an unsignalled wait on a main thread, while short worker polls
+     // would make the diagnostic log unusably noisy.
+-    bool long_wait = timeout == INT64_MAX || timeout <= -10000000 || timeout >= 10000000;
++    bool long_wait = timeout == INT64_MAX || timeout <= -100000 || timeout >= 10000000;
+     if (self && long_wait) {
+         static std::mutex trace_lock;
+         static std::unordered_map<uint32_t, uint32_t> samples;
