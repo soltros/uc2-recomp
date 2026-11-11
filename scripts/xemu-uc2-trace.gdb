@@ -135,7 +135,9 @@ end
 break *0x00266616
 commands
   silent
-  set $uc2_event_handle = *(unsigned int*)($esp+4)
+  # NtClearEvent is stdcall(1). Its wrapper's pushed handle remains at ESP
+  # after the import returns, so read the first stack word here.
+  set $uc2_event_handle = *(unsigned int*)$esp
   if $uc2_event_handle != 0 && ($uc2_event_handle == $uc2_main_event_handle || $uc2_event_handle == $uc2_worker_h0_0 || $uc2_event_handle == $uc2_worker_h1_0 || $uc2_event_handle == $uc2_worker_h0_1 || $uc2_event_handle == $uc2_worker_h1_1 || $uc2_event_handle == $uc2_worker_h0_2 || $uc2_event_handle == $uc2_worker_h1_2 || $uc2_event_handle == $uc2_worker_h0_3 || $uc2_event_handle == $uc2_worker_h1_3)
     printf "UC2 NtClearEvent return handle=%08x status=%08x\n", $uc2_event_handle, $eax
   end
