@@ -239,6 +239,23 @@ commands
   continue
 end
 
+# Capture CreateOptions before the common file-open wrapper's nine-argument
+# NtCreateFile call. The output handle is at [ESP], and CreateOptions is the
+# ninth stack argument at [ESP+32]. This lets the Xemu trace classify handles
+# using FILE_SYNCHRONOUS_IO_ALERT/NONALERT, matching the recomp HLE trace.
+break *0x002622A9
+commands
+  silent
+  set $uc2_open_options = *(unsigned int*)($esp+32)
+  set $uc2_open_disposition = *(unsigned int*)($esp+28)
+  set $uc2_open_path = *(unsigned int*)($ebp-8)
+  printf "UC2 NtCreateFile args path_ptr=%08x disposition=%08x options=%08x\n", $uc2_open_path, $uc2_open_disposition, $uc2_open_options
+  if $uc2_open_path != 0
+    x/s $uc2_open_path
+  end
+  continue
+end
+
 break *0x002622AF
 commands
   silent
