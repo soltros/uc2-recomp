@@ -50,6 +50,16 @@ commands
   continue
 end
 
+# The UC2 wrapper stores NtCreateEvent's output handle in its fourth stack
+# slot. Record successful and named-object reuse results so worker handles can
+# be classified against file opens and event creation.
+break *0x002665C2
+commands
+  silent
+  printf "UC2 NtCreateEvent return status=%08x handle=%08x\n", $eax, *(unsigned int*)($ebp+0x14)
+  continue
+end
+
 # Event wrappers reveal who signals or resets either completion handle. The
 # worker-start breakpoint above records the pair used by the active worker.
 break *0x002665EC
