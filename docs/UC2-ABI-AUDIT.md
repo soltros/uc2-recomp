@@ -30,6 +30,10 @@ The scanner reports registers read before being overwritten and the callee's sta
 
 `stack` means the next stack argument slot in API order; the mapped wrapper accounts for stack cleanup according to the title's callee convention.
 
+## File-read ABI evidence
+
+At guest call site `0x00262C22`, UC2 calls the kernel thunk for ordinal 219 (`NtReadFile`). Immediately before the call, it pushes these eight arguments in reverse order: file handle from `[ebp-0x08]`; null event, APC routine, and APC context; an I/O status block at `[ebp-0x20]`; buffer at `[ebp-0x22C]`; length `0x200`; and a byte-offset pointer at `[ebp-0x18]`, initialized to `0x800`. The generated call enters `x86_kernel(..., 219)`. XboxXBERecomp registers ordinal 219 as an eight-argument stdcall export, reads argument `i` from `esp + 4 + 4*i`, and returns by popping eight arguments. The file HLE reads the same eight slots in the documented order. This call-site and wrapper evidence supports the `NtReadFile` ABI mapping; it does not prove that the match-load path reaches this or another read call.
+
 ## Current conclusion
 
 The mappings above have a mixture of direct call-site evidence and partial runtime evidence. They should remain explicit in the title config because the executable's D3D8 library is LTCG and does not follow the reference library's default convention. A rendered gameplay frame and follow-up run are still needed to validate the draw path end to end.
