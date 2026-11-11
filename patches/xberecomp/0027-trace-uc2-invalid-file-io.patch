@@ -1,0 +1,100 @@
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -39,12 +39,16 @@
+     return out;
+ }
+ 
+-bool TraceUC2LevelIo(const std::string& path) {
++bool TraceUC2IoEnabled() {
+     static const bool enabled = [] {
+         const char* value = std::getenv("XBE_TRACE_LEVEL_IO");
+         return value && *value && *value != '0';
+     }();
+-    return enabled && Upper(path).find("CTF-DOWNFALL") != std::string::npos;
++    return enabled;
++}
++
++bool TraceUC2LevelIo(const std::string& path) {
++    return TraceUC2IoEnabled() && Upper(path).find("CTF-DOWNFALL") != std::string::npos;
+ }
+ 
+ // host lookup that ignores case on file systems that do not
+@@ -99,8 +103,8 @@
+     }
+ };
+ 
+-void TraceUC2LevelTransfer(const File& f, bool write, uint64_t pos, uint32_t requested, uint32_t actual,
+-                           uint32_t status) {
++void TraceUC2LevelTransfer(const File& f, uint32_t handle, bool write, uint64_t pos, uint32_t requested,
++                           uint32_t actual, uint32_t status) {
+     if (!TraceUC2LevelIo(f.xbox)) return;
+     static std::mutex lock;
+     static std::unordered_map<std::string, uint64_t> counts;
+@@ -110,9 +114,9 @@
+         sample = counts[f.xbox]++;
+     }
+     if (sample < 32 || (sample % 256) == 0)
+-        LOGI("files: UC2 level %s[%llu] %s offset=%llu requested=%u actual=%u status=%08X",
+-             write ? "write" : "read", (unsigned long long)sample, f.xbox.c_str(), (unsigned long long)pos,
+-             requested, actual, status);
++        LOGI("files: UC2 level %s[%llu] %s handle=%08X offset=%llu requested=%u actual=%u status=%08X",
++             write ? "write" : "read", (unsigned long long)sample, f.xbox.c_str(), handle,
++             (unsigned long long)pos, requested, actual, status);
+ }
+ 
+ struct Link : Object {
+@@ -536,10 +540,22 @@
+ }
+ 
+ // pages is the FILE_SEGMENT_ELEMENT array for scatter and gather, 0 for one buffer
+-static uint32_t Transfer(const Args& a, bool write, uint32_t pages) {
++static uint32_t Transfer(X86Context& ctx, const Args& a, bool write, uint32_t pages) {
+     uint32_t h = a[0], event = a[1], apc = a[2], apc_ctx = a[3], iosb = a[4], buf = a[5], len = a[6], off = a[7];
+     auto f = FileFromHandle(h);
+-    if (!f || (!f->fp && !f->entry)) return kInvalidHandle;
++    if (!f || (!f->fp && !f->entry)) {
++        bool trace = f ? TraceUC2LevelIo(f->xbox) : TraceUC2IoEnabled();
++        if (trace) {
++            static std::atomic<uint32_t> invalid_samples{0};
++            uint32_t sample = invalid_samples.fetch_add(1, std::memory_order_relaxed);
++            if (sample < 64) {
++                LOGW("files: UC2 file %s rejected handle=%08X path=%s length=%u buffer=%08X pages=%08X offset=%08X",
++                     write ? "write" : "read", h, f ? f->xbox.c_str() : "<invalid>", len, buf, pages, off);
++                LogGuestStack(ctx, 8);
++            }
++        }
++        return kInvalidHandle;
++    }
+     if (write && f->entry) return kAccessDenied;
+     ResetEvent(*f);
+     std::lock_guard<std::mutex> lock(f->io);
+@@ -557,22 +573,22 @@
+     }
+     f->pos = pos + n;
+     if (write && n < len) {
+-        TraceUC2LevelTransfer(*f, write, pos, len, n, 0xC000007F);
++        TraceUC2LevelTransfer(*f, h, write, pos, len, n, 0xC000007F);
+         return Finish(*f, 0xC000007F, n, event, apc, apc_ctx, iosb);  // disk full
+     }
+     if (!write && len && !n) {
+-        TraceUC2LevelTransfer(*f, write, pos, len, n, kEndOfFile);
++        TraceUC2LevelTransfer(*f, h, write, pos, len, n, kEndOfFile);
+         return Finish(*f, kEndOfFile, 0, event, apc, apc_ctx, iosb);
+     }
+-    TraceUC2LevelTransfer(*f, write, pos, len, n, kSuccess);
++    TraceUC2LevelTransfer(*f, h, write, pos, len, n, kSuccess);
+     return Finish(*f, kSuccess, n, event, apc, apc_ctx, iosb);
+ }
+ 
+-KERNEL_EXPORT(219, NtReadFile, 8) { return Transfer(a, false, 0); }
+-KERNEL_EXPORT(236, NtWriteFile, 8) { return Transfer(a, true, 0); }
++KERNEL_EXPORT(219, NtReadFile, 8) { return Transfer(ctx, a, false, 0); }
++KERNEL_EXPORT(236, NtWriteFile, 8) { return Transfer(ctx, a, true, 0); }
+ // the buffer argument is an array of one page per element
+-KERNEL_EXPORT(220, NtReadFileScatter, 8) { return Transfer(a, false, a[5]); }
+-KERNEL_EXPORT(237, NtWriteFileGather, 8) { return Transfer(a, true, a[5]); }
++KERNEL_EXPORT(220, NtReadFileScatter, 8) { return Transfer(ctx, a, false, a[5]); }
++KERNEL_EXPORT(237, NtWriteFileGather, 8) { return Transfer(ctx, a, true, a[5]); }
+ 
+ KERNEL_EXPORT(211, NtQueryInformationFile, 5) {
+     uint32_t h = a[0], iosb = a[1], out = a[2], len = a[3], cls = a[4];
