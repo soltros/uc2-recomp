@@ -1,0 +1,26 @@
+diff --git a/src/d3d/vulkan_linux.cpp b/src/d3d/vulkan_linux.cpp
+index dd81eded4dd8866dbc70b09f44da45f8efda7279..0000000000000000000000000000000000000000 100644
+--- a/src/d3d/vulkan_linux.cpp
++++ b/src/d3d/vulkan_linux.cpp
+@@ -3205,6 +3205,21 @@ void VulkanBackend::CaptureInputs(const State& s, const Assembled& a, const Draw
+     fprintf(cap_, "\n     verts");
+     uint32_t n = 0;
+     for (int r = 0; r < 16; r++) n += (a.regs >> r) & 1;
++    // The fast input-assembler path keeps source vertices in raw guest format,
++    // so a.vertices is empty. Record small raw draws too; this is essential for
++    // diagnosing fixed-function fullscreen quads and other black-frame cases.
++    if (a.vertices.empty()) {
++        for (uint32_t v = 0; v < std::min<uint32_t>(4, a.vertex_count); v++) {
++            fprintf(cap_, "\n     raw%u", v);
++            for (uint32_t b = 0; b < a.buffer_count; b++) {
++                const VertexBuffer& vb = a.buffers[b];
++                if (!vb.src || !vb.stride || uint64_t(v + 1) * vb.stride > vb.bytes) continue;
++                fprintf(cap_, " b%u", b);
++                const uint8_t* p = vb.src + size_t(v) * vb.stride;
++                for (uint32_t j = 0; j < std::min<uint32_t>(vb.stride, 64); j++) fprintf(cap_, " %02X", p[j]);
++            }
++        }
++    }
+     for (size_t v = 0; v < std::min<size_t>(4, n ? a.vertices.size() / (n * 4) : 0); v++) {
+         fprintf(cap_, " [");
+         for (uint32_t k = 0; k < n * 4; k++) fprintf(cap_, " %g", a.vertices[v * n * 4 + k]);

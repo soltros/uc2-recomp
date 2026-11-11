@@ -10,6 +10,7 @@ log="diagnostic_logs/xberecomp_${stamp}.log"
 capture_dir="${XBE_CAPTURE_DIR:-$repo_root/diagnostic_logs/xberecomp_frames}"
 mkdir -p "$capture_dir"
 watchdog_secs="${RECOMP_WATCHDOG_SECS:-${UC2_DIAG_WATCHDOG_SECS:-0}}"
+capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-8}"
 
 if [[ -n "${UC2_XBERECOMP_BIN:-}" ]]; then
     binary="$UC2_XBERECOMP_BIN"
@@ -26,6 +27,10 @@ if [[ ! -x "$binary" ]]; then
 fi
 if [[ ! "$watchdog_secs" =~ ^[0-9]+$ ]]; then
     echo "error: RECOMP_WATCHDOG_SECS must be a non-negative integer" >&2
+    exit 2
+fi
+if [[ ! "$capture_after_secs" =~ ^[0-9]+$ ]]; then
+    echo "error: RECOMP_CAPTURE_AFTER_SECS must be a non-negative integer" >&2
     exit 2
 fi
 
@@ -49,7 +54,7 @@ echo "XboxXBERecomp UC2 diagnostic run" | tee "$log"
 echo "  executable: $binary" | tee -a "$log"
 echo "  sha256:     $(sha256sum "$binary" | cut -d ' ' -f 1)" | tee -a "$log"
 echo "  log:        $log" | tee -a "$log"
-echo "  captures:   $capture_dir (press F3 to capture a frame)" | tee -a "$log"
+echo "  captures:   $capture_dir (automatic capture after ${capture_after_secs}s; F3 also works)" | tee -a "$log"
 if ((watchdog_secs > 0)); then
     echo "  watchdog:   ${watchdog_secs}s" | tee -a "$log"
 fi
@@ -58,13 +63,40 @@ set +e
 "$repo_root/scripts/with-xberecomp-nix-env.sh" env \
     XBE_PERF=1 \
     XBE_CAPTURE_DIR="$capture_dir" \
-    "${runner[@]}" 2>&1 | tee -a "$log"
-statuses=("${PIPESTATUS[@]}")
+    "${runner[@]}" >>"$log" 2>&1 &
+runner_pid=$!
+
+# The Linux fork installs SIGUSR1 as a frame-capture request (the same action
+# as F3). Walk through timeout's child when the watchdog is enabled so the
+# signal reaches uc2_recomp itself.
+capture_pid=""
+if ((capture_after_secs > 0)); then
+    (
+        sleep "$capture_after_secs"
+        if kill -0 "$runner_pid" 2>/dev/null; then
+            target_pid="$runner_pid"
+            while child_pid="$(pgrep -P "$target_pid" 2>/dev/null | head -n 1)" && [[ -n "$child_pid" ]]; do
+                target_pid="$child_pid"
+            done
+            if kill -USR1 "$target_pid" 2>/dev/null; then
+                echo "[diagnostic] requested automatic frame capture from pid $target_pid" >>"$log"
+            else
+                echo "[diagnostic] automatic frame capture signal failed for pid $target_pid" >>"$log"
+            fi
+        fi
+    ) &
+    capture_pid=$!
+fi
+
+tail --pid="$runner_pid" -n +1 -f "$log" &
+tail_pid=$!
+wait "$runner_pid"
+runner_status=$?
+if [[ -n "$capture_pid" ]]; then
+    kill "$capture_pid" 2>/dev/null || true
+    wait "$capture_pid" 2>/dev/null || true
+fi
+wait "$tail_pid" 2>/dev/null || true
 set -e
 
-runner_status="${statuses[0]}"
-tee_status="${statuses[1]}"
-if ((tee_status != 0)); then
-    exit "$tee_status"
-fi
 exit "$runner_status"
