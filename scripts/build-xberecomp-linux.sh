@@ -74,6 +74,19 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
         # Existing adjacent UC2 renderer patches make Git's reverse check for
         # this patch's final d3d8.cpp hunk fail despite all changes being present.
         echo "$(basename "$tool_patch") fixes are already present (overlapped by UC2 D3D setup)."
+    elif [[ "$(basename "$tool_patch")" == "0010-fallback-uc2-vertex-program.patch" ]] && \
+         rg -q 'shader slot %u had no loaded program; using %zu instructions' "$tool_root/sdk/runtime/xdk/d3d8.cpp"; then
+        # Later UC2 screen-space shader handling extends the same SelectedShader block.
+        echo "$(basename "$tool_patch") fix is already present (overlapped by UC2 shader handling)."
+    elif [[ "$(basename "$tool_patch")" == "0011-uc2-position-only-fvf-shader.patch" ]] && \
+         rg -q 'UC2 position-only shader at slot %u' "$tool_root/sdk/runtime/xdk/d3d8.cpp"; then
+        # The screen-space mode patch extends this adjacent shader selection branch.
+        echo "$(basename "$tool_patch") fix is already present (overlapped by UC2 screen-space mode)."
+    elif [[ "$(basename "$tool_patch")" == "0012-uc2-screen-space-vertex-mode.patch" ]] && \
+         rg -q 'bool pretransformed = false;' "$tool_root/sdk/runtime/gpu/state.h" && \
+         rg -q 's.vs && s.vs->pretransformed' "$tool_root/sdk/runtime/gpu/vertex.cpp" && \
+         rg -q 'key = gpu::Hash\(&vs.pretransformed' "$tool_root/sdk/runtime/xdk/d3d8.cpp"; then
+        echo "$(basename "$tool_patch") fix is already present."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

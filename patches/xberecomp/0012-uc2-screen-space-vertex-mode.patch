@@ -1,0 +1,39 @@
+diff --git a/sdk/runtime/gpu/state.h b/sdk/runtime/gpu/state.h
+--- a/sdk/runtime/gpu/state.h
++++ b/sdk/runtime/gpu/state.h
+@@ -131,6 +131,7 @@ struct VertexShader {
+     std::vector<uint32_t> program;  // 4 dwords per instruction
+     uint32_t program_type = 0;      // 0x2078 vertex, 0x7378 state, 0x7778 read/write
+     uint64_t hash = 0;
++    bool pretransformed = false;    // title vertex program emits screen-space XYZRHW positions
+     // stream layout parsed from the declaration: register -> stream, offset, type
+     struct Input {
+         int stream = -1;
+diff --git a/sdk/runtime/gpu/vertex.cpp b/sdk/runtime/gpu/vertex.cpp
+--- a/sdk/runtime/gpu/vertex.cpp
++++ b/sdk/runtime/gpu/vertex.cpp
+@@ -227,6 +227,6 @@ const VertexShader* PickLayout(const State& s, VertexShader& fvf_layout) {
+ // D3DFVF: an FVF handle with position XYZRHW
+ bool Pretransformed(const State& s) {
+-    return !(s.vs_handle & 1) && (s.vs_handle & 0xE) == 0x4;
++    return (s.vs && s.vs->pretransformed) || (!(s.vs_handle & 1) && (s.vs_handle & 0xE) == 0x4);
+ }
+ 
+ IndexBounds IndexRange(const uint8_t* ip, uint32_t count) {
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -1105,4 +1105,5 @@ std::shared_ptr<gpu::VertexShader> SelectedShader(uint32_t handle, uint32_t slot) {
+                                      source->program[3] == 0x2070F801;
+             if (uc2_position_only) {
++                vs.pretransformed = true;
+                 LOG_FIRST(8, "d3d: UC2 position-only shader at slot %u; using fixed-function FVF outputs", slot);
+             } else {
+@@ -1124,6 +1125,7 @@ std::shared_ptr<gpu::VertexShader> SelectedShader(uint32_t handle, uint32_t slot) {
+     uint64_t key = gpu::Hash(vs.program.data(), vs.program.size() * 4);
+     key = gpu::Hash(vs.inputs.data(), sizeof(vs.inputs), key);
+     key = gpu::Hash(vs.stream_stride.data(), sizeof(vs.stream_stride), key);
++    key = gpu::Hash(&vs.pretransformed, sizeof(vs.pretransformed), key);
+     auto& kept = g_selected[key];
+     if (!kept) kept = std::make_shared<gpu::VertexShader>(std::move(vs));
+     return kept;
