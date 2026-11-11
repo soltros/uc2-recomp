@@ -7,6 +7,7 @@ entry = 0x26867F
 xdk = 5849
 out = "generated/uc2"
 partitions = 64
+trace = [0x00255B20, 0x002A6E6E]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
 
