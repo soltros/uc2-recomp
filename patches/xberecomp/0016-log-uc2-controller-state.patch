@@ -1,0 +1,20 @@
+diff --git a/sdk/runtime/xdk/xapi.cpp b/sdk/runtime/xdk/xapi.cpp
+index 0fc7b2e..2636fc2 100644
+--- a/sdk/runtime/xdk/xapi.cpp
++++ b/sdk/runtime/xdk/xapi.cpp
+@@ -94,7 +94,14 @@ HLE_STDCALL(XInputGetState, 2) {
+     if (!p.connected) return 1167;  // ERROR_DEVICE_NOT_CONNECTED
+     std::lock_guard<std::mutex> lock(g_ports_lock);
+     Handle& h = g_handles[a[0]];
+-    if (std::memcmp(&p, &h.last, sizeof(p))) h.packet++;
++    bool changed = !h.last.connected || p.buttons != h.last.buttons || std::memcmp(p.analog, h.last.analog, sizeof(p.analog)) ||
++                   p.lx != h.last.lx || p.ly != h.last.ly || p.rx != h.last.rx || p.ry != h.last.ry;
++    if (changed) {
++        h.packet++;
++        LOGI("xapi: controller port %u state buttons=%04X face=%02X/%02X/%02X/%02X triggers=%02X/%02X sticks=%d,%d %d,%d",
++             port, p.buttons, p.analog[0], p.analog[1], p.analog[2], p.analog[3], p.analog[6], p.analog[7], p.lx,
++             p.ly, p.rx, p.ry);
++    }
+     h.last = p;
+     uint32_t s = a[1];
+     W32(s, h.packet);  // XINPUT_STATE: packet, buttons, 8 analog buttons, thumbs
