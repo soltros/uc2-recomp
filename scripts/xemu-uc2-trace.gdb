@@ -8,6 +8,10 @@ define uc2-log-read
   x/gx *(unsigned int*)($esp+28)
 end
 
+define uc2-log-read-result
+  printf "UC2 NtReadFile return pc=%08x status=%08x\n", $eip, $eax
+end
+
 # UC2's shared file-open wrapper returns from NtCreateFile here. EBP+8 is
 # its ANSI path argument; EBP-4 receives the resulting Xbox file handle.
 break *0x002622AF
@@ -28,11 +32,23 @@ commands
   uc2-log-read
   continue
 end
+break *0x002624B1
+commands
+  silent
+  uc2-log-read-result
+  continue
+end
 
 break *0x00262662
 commands
   silent
   uc2-log-read
+  continue
+end
+break *0x00262668
+commands
+  silent
+  uc2-log-read-result
   continue
 end
 
@@ -42,6 +58,12 @@ commands
   uc2-log-read
   continue
 end
+break *0x002626AD
+commands
+  silent
+  uc2-log-read-result
+  continue
+end
 
 break *0x00262C22
 commands
@@ -49,11 +71,23 @@ commands
   uc2-log-read
   continue
 end
+break *0x00262C28
+commands
+  silent
+  uc2-log-read-result
+  continue
+end
 
 break *0x0026804A
 commands
   silent
   uc2-log-read
+  continue
+end
+break *0x00268050
+commands
+  silent
+  uc2-log-read-result
   continue
 end
 

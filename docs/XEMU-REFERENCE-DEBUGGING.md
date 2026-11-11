@@ -37,7 +37,7 @@ x/32wx $esp
 For the Aqueduct loading trace, use the checked-in GDB command file instead;
 it logs UC2's shared `NtCreateFile` wrapper return (path, status, handle) and
 every direct `NtReadFile` call site found in the XBE, including the requested
-length and file offset. Start Xemu with the helper, then attach from a second
+length, file offset, and returned NTSTATUS. Start Xemu with the helper, then attach from a second
 terminal:
 
 ```sh
