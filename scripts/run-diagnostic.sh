@@ -10,7 +10,7 @@ log="diagnostic_logs/xberecomp_${stamp}.log"
 capture_dir="${XBE_CAPTURE_DIR:-$repo_root/diagnostic_logs/xberecomp_frames}"
 mkdir -p "$capture_dir"
 watchdog_secs="${RECOMP_WATCHDOG_SECS:-${UC2_DIAG_WATCHDOG_SECS:-0}}"
-capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-8,16,18}"
+capture_after_secs="${RECOMP_CAPTURE_AFTER_SECS:-8,16,30,35,40}"
 
 if [[ -n "${UC2_XBERECOMP_BIN:-}" ]]; then
     binary="$UC2_XBERECOMP_BIN"
