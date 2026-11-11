@@ -6,11 +6,9 @@ This project is licensed under GPL-3.0-only. See [LICENSE](LICENSE). XboxXBEReco
 
 ## Status
 
-XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The Linux executable builds from local game files. On an AMD Radeon RX 6700 XT using Vulkan, the 2026-11-10 diagnostic run stayed open for 37 seconds at about 60 FPS and exited cleanly when the window was closed. Audio played, but the display remained black after the loading screen; rendered gameplay is not yet verified.
+XboxXBERecomp recognizes the title as Unreal Championship 2 (`0x4D570021`), with XDK 5849 and guest entry point `0x0026867F`. The Linux executable builds from local game files and renders the front-end UI, including menu text, portraits, and weapon icons. Screenshots from 2026-11-11 still show missing/black preview areas and other incomplete assets. In the latest available run at 13:28, the user navigated into a CTF match; the title displayed its animated loading screen, opened `CTF-Downfall.lin` and its three XPR packages, and remained there until the window was closed at 59.532 seconds. Audio played. A gameplay frame has not yet been verified.
 
-Commit `34e3dd5` initializes the guest D3D push/fence state through UC2's XDK routine. This fixed the previous guest crash. The available automatic frame capture was taken during an earlier one-draw transition and was black; later in the run, the runtime reported 8–12 draws per frame. A capture from that later state is still needed to trace the black screen.
-
-The Linux fork is built from the separate XboxXBERecomp checkout, with UC2-specific tool changes recorded as patches under `patches/xberecomp/`. The optimized development build keeps boot and per-frame Info logs enabled. The repo is GPL-3.0-only and keeps game files, generated guest code, and build output outside Git.
+That 13:28 run used an older binary and did not include the latest file-handle tracing. The current build adds handle correlation to package-open and file-transfer logs; a new run through the match-load transition is needed to determine whether the map packages are being read and where loading stops. The Linux fork is built from the separate XboxXBERecomp checkout, with UC2-specific tool changes recorded as patches under `patches/xberecomp/`. Keep generated outputs and game content out of Git.
 
 ## Requirements
 
