@@ -20,4 +20,16 @@ export CMAKE_PREFIX_PATH="$profile${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 export VULKAN_SDK="${VULKAN_SDK:-$profile}"
 export LD_LIBRARY_PATH="$profile/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+# Wayland's pkg-config metadata declares libffi as a dependency. The runtime
+# package can be in the Nix store closure without its development output being
+# merged into the profile, so expose libffi.pc when available.
+if command -v pkg-config >/dev/null 2>&1 && ! pkg-config --exists libffi; then
+    for candidate in /nix/store/*-libffi-*-dev/lib/pkgconfig; do
+        if [[ -f "$candidate/libffi.pc" ]]; then
+            export PKG_CONFIG_PATH="$candidate${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            break
+        fi
+    done
+fi
+
 exec "$@"
