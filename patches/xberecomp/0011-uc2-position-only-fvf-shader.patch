@@ -1,0 +1,28 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -1096,10 +1096,21 @@ std::shared_ptr<gpu::VertexShader> SelectedShader(uint32_t handle, uint32_t slot) {
+         } else if (g_state.vs) {
+             source = g_state.vs.get();
+         }
+         if (source && !source->program.empty()) {
++            // UC2's screen-space FVF shader only writes oPos = v0. It relies on
++            // the fixed-function path to pass diffuse color and texture coords;
++            // treating this marker program as programmable leaves both zero and
++            // makes every menu draw black.
++            bool uc2_position_only = source->program.size() == 4 && source->program[0] == 0 &&
++                                     source->program[1] == 0x0020001B && source->program[2] == 0x0836106C &&
++                                     source->program[3] == 0x2070F801;
++            if (uc2_position_only) {
++                LOG_FIRST(8, "d3d: UC2 position-only shader at slot %u; using fixed-function FVF outputs", slot);
++            } else {
+-            vs.program = source->program;
+-            LOG_FIRST(32, "d3d: shader slot %u had no loaded program; using %zu instructions from handle %08X", slot,
+-                      vs.program.size() / 4, handle ? handle : g_state.vs_handle);
++                vs.program = source->program;
++                LOG_FIRST(32, "d3d: shader slot %u had no loaded program; using %zu instructions from handle %08X", slot,
++                          vs.program.size() / 4, handle ? handle : g_state.vs_handle);
++            }
+         }
+     }
+     vs.program_type = kVertexProgramType;
