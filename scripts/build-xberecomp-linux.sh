@@ -91,6 +91,11 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'Shrink below samples BC1/2/3 images too; include compressed title textures in captures' "$tool_root/src/d3d/vulkan_linux.cpp" && \
          rg -q 'if \(res && !tg && stages.info\[i\].kind == kTex2D && cap_seen_\.insert\(d\.data\)\.second\)' "$tool_root/src/d3d/vulkan_linux.cpp"; then
         echo "$(basename "$tool_patch") fix is already present."
+    elif [[ "$(basename "$tool_patch")" == "0017-queue-diagnostic-frame-captures.patch" ]] && \
+         rg -q 'g_capture_requests' "$tool_root/sdk/runtime/gpu/backend.h" && \
+         rg -q 'auto unique_stamp =' "$tool_root/src/d3d/vulkan_linux.cpp" && \
+         rg -q 'CaptureRequested\(\)' "$tool_root/src/d3d/vulkan_linux.cpp"; then
+        echo "$(basename "$tool_patch") fix is already present."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
