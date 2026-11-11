@@ -32,10 +32,10 @@ The script configures the project and builds `build-xberecomp/uc2_recomp`. XboxX
 ## Run and capture diagnostics
 
 ```sh
-RECOMP_WATCHDOG_SECS=45 ./scripts/run-diagnostic.sh
+./scripts/run-diagnostic.sh
 ```
 
-The launcher writes a timestamped log to `diagnostic_logs/` and configures frame capture there (press F3 in the game window). Set `UC2_XBERECOMP_BIN` to run another executable. Omit `RECOMP_WATCHDOG_SECS` to let the game run until it is closed.
+The launcher writes a timestamped log to `diagnostic_logs/` and captures a frame every second (press F3 in the game window to capture one immediately). It stays open until you close the game window. Set `UC2_XBERECOMP_BIN` to run another executable.
 
 ## ABI and graphics work
 
