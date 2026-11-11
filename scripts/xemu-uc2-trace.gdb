@@ -248,6 +248,15 @@ commands
   continue
 end
 
+# Log closes so the trace can distinguish an event handle from a later file
+# handle that reused the same numeric value.
+break *0x0026640E
+commands
+  silent
+  printf "UC2 NtClose handle=%08x caller=%08x\n", *(unsigned int*)($esp+4), *(unsigned int*)$esp
+  continue
+end
+
 # All direct NtReadFile import call sites found in UC2's XBE disassembly.
 break *0x002624AB
 commands
