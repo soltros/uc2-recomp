@@ -148,4 +148,30 @@ commands
   continue
 end
 
+break *0x00322B44
+commands
+  silent
+  uc2-log-read
+  continue
+end
+break *0x00322B4A
+commands
+  silent
+  uc2-log-read-result
+  continue
+end
+
+break *0x0038969B
+commands
+  silent
+  uc2-log-read
+  continue
+end
+break *0x003896A1
+commands
+  silent
+  uc2-log-read-result
+  continue
+end
+
 continue
