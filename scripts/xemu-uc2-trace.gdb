@@ -94,7 +94,7 @@ end
 break *0x002665C2
 commands
   silent
-  printf "UC2 NtCreateEvent return status=%08x handle=%08x\n", $eax, *(unsigned int*)($ebp+0x14)
+  printf "UC2 NtCreateEvent return status=%08x handle=%08x caller=%08x\n", $eax, *(unsigned int*)($ebp+0x14), *(unsigned int*)($ebp+4)
   continue
 end
 
