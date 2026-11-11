@@ -1,0 +1,37 @@
+diff --git a/sdk/runtime/kernel/objects.cpp b/sdk/runtime/kernel/objects.cpp
+index bbb575c..0000000 100644
+--- a/sdk/runtime/kernel/objects.cpp
++++ b/sdk/runtime/kernel/objects.cpp
+@@ -235,18 +235,25 @@ uint32_t Wait(const std::vector<ObjectRef>& objs, bool wait_all, int64_t timeout, bool alertable) {
+     // lived guest threads so a diagnostic log can distinguish a blocked
+     // worker from a guest-side busy loop without flooding normal boot logs.
+     uint32_t sample = 0;
+     bool trace = false;
+-    if (self && self->id >= 0x2C) {
++    // Trace long waits from the main guest threads too. A match-load stall
++    // can be an unsignalled wait on a main thread, while short worker polls
++    // would make the diagnostic log unusably noisy.
++    bool long_wait = timeout == INT64_MAX || timeout <= -10000000 || timeout >= 10000000;
++    if (self && long_wait) {
+         static std::mutex trace_lock;
+         static std::unordered_map<uint32_t, uint32_t> samples;
+         std::lock_guard<std::mutex> lock(trace_lock);
+         sample = samples[self->id]++;
+-        trace = sample < 12 || (sample % 64) == 0;
++        trace = sample < 8 || (sample % 64) == 0;
+     }
+     if (trace) {
+-        uint32_t first_guest = objs.empty() || !objs.front() ? 0 : objs.front()->guest;
+-        uint32_t first_type = objs.empty() || !objs.front() ? 0xFF : uint32_t(objs.front()->type);
+-        LOGI("kernel: thread %X wait[%u] enter count=%zu all=%u alertable=%u timeout=%lld first=%u/%08X",
+-                  self->id, sample, objs.size(), unsigned(wait_all), unsigned(alertable), (long long)timeout,
+-                  first_type, first_guest);
++        LOGI("kernel: thread %X wait[%u] enter count=%zu all=%u alertable=%u timeout=%lld",
++             self->id, sample, objs.size(), unsigned(wait_all), unsigned(alertable), (long long)timeout);
++        for (size_t i = 0; i < objs.size(); i++) {
++            const ObjectRef& obj = objs[i];
++            LOGI("kernel: thread %X wait[%u] object[%zu] type=%u guest=%08X",
++                 self->id, sample, i, obj ? unsigned(obj->type) : 0xFF, obj ? obj->guest : 0);
++        }
++        if (sample < 2 && self->ctx) LogGuestStack(*self->ctx, 8);
+     }
