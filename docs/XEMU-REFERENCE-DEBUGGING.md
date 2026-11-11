@@ -37,11 +37,21 @@ x/32wx $esp
 For the Aqueduct loading trace, use the checked-in GDB command file instead;
 it logs UC2's shared `NtCreateFile` wrapper return (path, status, handle) and
 all seven direct `NtReadFile` call sites found in the XBE, including the requested
-length, file offset, and returned NTSTATUS. Start Xemu with the helper, then attach from a second
-terminal:
+length, file offset, and returned NTSTATUS. To start Xemu and attach the trace
+from one terminal, run:
 
 ```sh
-nix shell nixpkgs#gdb -c gdb -q -x scripts/xemu-uc2-trace.gdb 2>&1 \
+./scripts/run-xemu-uc2-trace.sh
+```
+
+The helper opens Xemu with its guest GDB server, waits for port `1234`, and
+attaches GDB in batch mode. Navigate to the same CTF-Aqueduct match and close
+Xemu when finished; it stores separate timestamped Xemu and guest trace logs in
+`diagnostic_logs/`. Optional Xemu arguments can be passed after the helper.
+For a currently running Xemu instance, attach manually with:
+
+```sh
+nix shell nixpkgs#gdb -c gdb -q -batch -x scripts/xemu-uc2-trace.gdb 2>&1 \
   | tee "diagnostic_logs/xemu_guest_$(date +%Y%m%d_%H%M%S).log"
 ```
 
