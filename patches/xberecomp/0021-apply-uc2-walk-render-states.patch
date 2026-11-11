@@ -1,0 +1,19 @@
+diff --git a/sdk/runtime/xdk/d3d8.cpp b/sdk/runtime/xdk/d3d8.cpp
+--- a/sdk/runtime/xdk/d3d8.cpp
++++ b/sdk/runtime/xdk/d3d8.cpp
+@@ -1382,7 +1382,14 @@ void Walk(uint32_t end) {
+             uint32_t m = head & 0x40000000 ? method : method + i * 4;
+             uint32_t v = R32(p);
+             ApplyVisibilityMethod(m, v);
+-            if (!ApplyConstant(m, v)) ApplyImmediate(m, v);
++            if (!ApplyConstant(m, v) && !ApplyImmediate(m, v) && m >> 2 < g_state.simple.size()) {
++                g_state.simple[m >> 2] = v;
++                if (m == gpu::kMAlphaTestEnable || m == gpu::kMBlendEnable || m == gpu::kMDitherEnable ||
++                    m == gpu::kMAlphaFunc || m == gpu::kMAlphaRef || m == gpu::kMSrcBlend ||
++                    m == gpu::kMDestBlend || m == gpu::kMBlendColor || m == gpu::kMBlendOp ||
++                    m == gpu::kMZFunc || m == gpu::kMZWriteEnable || m == gpu::kMColorWriteEnable)
++                    LOG_FIRST(512, "d3d: pushed render state method %04X value %08X", m, v);
++            }
+         }
+     }
+     g_walk = end;
