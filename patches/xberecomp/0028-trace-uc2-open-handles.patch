@@ -1,0 +1,34 @@
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -357,7 +357,8 @@
+     W32(handle_out, NewHandle(f));
+     IoStatus(iosb, kSuccess, 1);
+     if (TraceUC2LevelIo(name))
+-        LOGI("files: UC2 level opened %s from game disc (%u bytes)", name.c_str(), e->size);
++        LOGI("files: UC2 level opened %s from game disc (%u bytes) handle=%08X", name.c_str(), e->size,
++             R32(handle_out));
+     LOG_FIRST(400, "open %s", name.c_str());
+     return kSuccess;
+ }
+@@ -482,8 +483,8 @@
+     IoStatus(iosb, kSuccess, info);
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = fs::file_size(host, ec);
+-        LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
+-             (unsigned long long)size);
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X", name.c_str(), host.c_str(),
++             (unsigned long long)size, R32(handle_out));
+         LogGuestStack(ctx, 8);
+     }
+     LOG_FIRST(400, "open %s", name.c_str());
+@@ -518,8 +519,8 @@
+     IoStatus(iosb, kSuccess, 1);
+     if (TraceUC2LevelIo(name)) {
+         uint64_t size = f->dir ? 0 : fs::file_size(host, ec);
+-        LOGI("files: UC2 level opened %s -> %s (%llu bytes)", name.c_str(), host.c_str(),
+-             (unsigned long long)size);
++        LOGI("files: UC2 level opened %s -> %s (%llu bytes) handle=%08X", name.c_str(), host.c_str(),
++             (unsigned long long)size, R32(handle_out));
+         LogGuestStack(ctx, 8);
+     }
+     return kSuccess;

@@ -108,6 +108,10 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'TraceUC2LevelTransfer' "$tool_root/sdk/runtime/kernel/files.cpp" && \
          rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then
         echo "$(basename "$tool_patch") tracing is already present (extended by 0026)."
+    elif [[ "$(basename "$tool_patch")" == "0026-trace-uc2-level-open-callers.patch" ]] && \
+         rg -q 'handle=%08X' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'LogGuestStack\(ctx, 8\)' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        echo "$(basename "$tool_patch") tracing is already present (extended by 0028)."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1
