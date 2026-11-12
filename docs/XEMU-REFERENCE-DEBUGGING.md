@@ -66,6 +66,10 @@ non-timeout worker results and completion-handler entry/return. Compare those
 records with the recomp's `UC2 wait raw args` and `UC2 wait-handle` lines to
 see whether the reference signals the main loading event after opening the
 map packages and whether the worker handles resolve to the same object types.
+At the post-call breakpoints, the kernel export has already popped its stdcall
+arguments, so each event handle is read from `[ESP+4]` after the wrapper's
+return address. This keeps the set/clear/pulse records tied to the actual
+worker handles.
 Both the Xemu console log and GDB trace stay outside the tracked game/source
 files.
 
