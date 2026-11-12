@@ -13,9 +13,9 @@ trace = [
     0x00255B20, 0x002A6E6E,
     0x00028300, 0x00028410, 0x00028540, 0x00028DC0, 0x00028E90,
     0x000299D0, 0x0002A7F0,
-    # Trace the title wrapper and XMV decoder entry to identify which movie
-    # path the menu requests, and whether that request reaches the decoder.
-    0x000303D0, 0x002C534D,
+    # Trace the movie-player setup, title wrapper, and XMV decoder entry to
+    # identify which movie path the menu requests and whether it opens.
+    0x0002E9B0, 0x000303D0, 0x002C534D,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
