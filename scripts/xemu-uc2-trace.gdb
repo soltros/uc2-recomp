@@ -34,7 +34,7 @@ commands
   continue
 end
 
-# Trace the game's single-object wait wrapper as well as the XPP worker. The
+# Trace the game's single-object wait wrapper. The
 # long-lived load transition waits here on its main event (or on a null,
 # infinite timeout while waiting on that event).
 break *0x00266760
@@ -73,7 +73,7 @@ end
 # At 0x283CC, ECX is the interface object and EAX is the vtable pointer. The
 # indirect target is [EAX+0x14]. The loader then checks object's +0x10 state
 # at 0x283CF. Capture both sides to correlate the call with package reads and
-# worker completions.
+# input-worker polls and main-event transitions.
 break *0x000283CC
 commands
   silent
@@ -96,9 +96,8 @@ commands
   continue
 end
 
-# The match-load worker is UC2's routine at 0x2E780. Its context is passed
-# on the stack; sub_2EA50 polls two handles in that context and processes a
-# completion only after the wait leaves STATUS_TIMEOUT (0x102).
+# Ghidra shows 0x2E780/0x2EA50 is the XInput polling worker: sub_2E310 calls
+# XGetDeviceChanges and XInputGetState. These waits are unrelated to map I/O.
 break *0x0002E780
 commands
   silent
@@ -111,7 +110,7 @@ commands
   set $uc2_worker_h1_1 = $uc2_worker_h1_0
   set $uc2_worker_h0_0 = *(unsigned int*)($uc2_worker_ctx+0x0c)
   set $uc2_worker_h1_0 = *(unsigned int*)($uc2_worker_ctx+0x10)
-  printf "UC2 match worker start ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $uc2_worker_ctx, *(unsigned int*)($uc2_worker_ctx+0x0c), *(unsigned int*)($uc2_worker_ctx+0x10), *(unsigned int*)($uc2_worker_ctx+0xb4), *(unsigned int*)($uc2_worker_ctx+0xb8)
+  printf "UC2 input worker start ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $uc2_worker_ctx, *(unsigned int*)($uc2_worker_ctx+0x0c), *(unsigned int*)($uc2_worker_ctx+0x10), *(unsigned int*)($uc2_worker_ctx+0xb4), *(unsigned int*)($uc2_worker_ctx+0xb8)
   x/7wx $uc2_worker_ctx+0xbc
   continue
 end
@@ -426,33 +425,31 @@ commands
   continue
 end
 
-# At this point EAX is the result of the worker's wait-for-multiple-objects.
+# At this point EAX is the result of the input worker's wait-for-multiple-objects.
 # Ignore ordinary timeout polls and stop only when Xemu reports a signal or
 # another wait result, then log and continue automatically.
 break *0x0002EAA8 if $eax != 0x102
 commands
   silent
-  printf "UC2 match worker wait result=%08x ctx=%08x ebx_gate=%08x previous_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, $ebx, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  printf "UC2 input worker wait result=%08x ctx=%08x ebx_gate=%08x previous_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, $ebx, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
   continue
 end
 
-# At this call site the worker has tested EBX and is about to run the
-# completion handler. Logging entry distinguishes a signaled wait that the
-# worker ignores from one it actually consumes.
+# At this call site the worker has tested EBX and is about to poll XInput
+# device state. This is not an asynchronous file-completion callback.
 break *0x0002EAAE
 commands
   silent
-  printf "UC2 match worker completion call ctx=%08x wait_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $esi, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  printf "UC2 input worker poll call ctx=%08x wait_result=%08x handles=%08x/%08x flags=%08x/%08x\n", $esi, $edi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
   continue
 end
 
-# This point follows sub_2E310, which the worker calls only after a
-# non-timeout wait result. Record zero as well as nonzero returns so the
-# reference trace shows whether a wake was consumed or ignored.
+# This point follows sub_2E310's XInput state poll. Record zero and nonzero
+# returns to characterize controller notifications, separately from file I/O.
 break *0x0002EAB3
 commands
   silent
-  printf "UC2 match worker sub_2E310 return=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
+  printf "UC2 input worker sub_2E310 return=%08x ctx=%08x handles=%08x/%08x flags=%08x/%08x\n", $eax, $esi, *(unsigned int*)($esi+0x0c), *(unsigned int*)($esi+0x10), *(unsigned int*)($esi+0xb4), *(unsigned int*)($esi+0xb8)
   continue
 end
 

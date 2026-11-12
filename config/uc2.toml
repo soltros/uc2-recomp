@@ -7,12 +7,11 @@ entry = 0x26867F
 xdk = 5849
 out = "generated/uc2"
 partitions = 64
-# Trace UC2's package check, loader state loop and worker dispatch next to the
-# async Aqueduct open boundary seen in the Xemu reference trace.
+# Trace UC2's package cache check and loader state loop. 0x2E780 is an XInput
+# polling worker, not the asynchronous map loader.
 trace = [
     0x00255B20, 0x002A6E6E,
     0x00028300, 0x00028410, 0x00028540, 0x00028DC0,
-    0x0002E780, 0x0002E9B0, 0x0002EA50, 0x0002E310,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
