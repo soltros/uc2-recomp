@@ -84,10 +84,12 @@ site and the event object's pointer and arguments. It also records XPP's
 `ObReferenceObjectByHandle` result, mapping the file/event handle to the
 dispatcher object's guest address for correlation with the wait list.
 It also records the XPP `IoCreateDevice` arguments, return status, and returned
-device pointer on success, plus the entry arguments and return status for
-`IoStartPacket`/`IoStartNextPacket`. These show whether XPP's virtual device
-initialization and packet path actually run during the Aqueduct load, and
-whether device creation succeeds before the packet queue is used.
+device pointer on success, plus the entry arguments for `IoStartPacket` and all
+identified `IoStartNextPacket` sites. All nine identified XPP
+`IofCompleteRequest` sites are traced with their IRP and priority arguments.
+These show whether XPP's virtual device initialization, packet queue, and IRP
+completion paths actually run during the Aqueduct load, and whether device
+creation succeeds before the packet queue is used.
 At the post-call breakpoints, the kernel export has already popped its stdcall
 arguments, so each event handle is read from `[ESP+4]` after the wrapper's
 return address. This keeps the set/clear/pulse records tied to the actual

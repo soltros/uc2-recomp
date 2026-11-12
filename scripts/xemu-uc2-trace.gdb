@@ -273,6 +273,131 @@ commands
   continue
 end
 
+# The XPP packet-completion path calls IofCompleteRequest from several
+# dispatch routines. Capture every statically identified site, since a map
+# read may complete through one of the paths other than the first packet.
+define uc2-log-xpp-complete-request
+  printf "UC2 XPP IofCompleteRequest site=%08x irp=%08x priority=%08x\n", $eip, $ecx, $edx
+end
+
+break *0x0039C174
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039C1CD
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039C410
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039C645
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039C82A
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039C96C
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039CAA2
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039CB48
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+break *0x0039CC71
+commands
+  silent
+  uc2-log-xpp-complete-request
+  continue
+end
+
+# All identified XPP IoStartNextPacket sites. These show whether the packet
+# queue advances after an IRP completion during the match-load transition.
+define uc2-log-xpp-start-next
+  printf "UC2 XPP IoStartNextPacket site=%08x device=%08x\n", $eip, *(unsigned int*)$esp
+end
+
+break *0x0039C418
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039C652
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039C837
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039C974
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039CAAA
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039CB50
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
+break *0x0039CC78
+commands
+  silent
+  uc2-log-xpp-start-next
+  continue
+end
+
 # At this point EAX is the result of the worker's wait-for-multiple-objects.
 # Ignore ordinary timeout polls and stop only when Xemu reports a signal or
 # another wait result, then log and continue automatically.
