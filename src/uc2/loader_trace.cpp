@@ -22,7 +22,7 @@ bool ShouldTrace(std::atomic<uint32_t>& counter, uint32_t& sample) {
 
 }  // namespace
 
-extern "C" void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
+void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
     (void)base;
     static std::atomic<uint32_t> calls{0};
     uint32_t sample = 0;
@@ -37,7 +37,7 @@ extern "C" void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
          sample, object, vtable, method, state10, state14, ctx.eax, ctx.ecx);
 }
 
-extern "C" void UC2_TraceLoaderMethodResult(X86Context& ctx, uint8_t* base) {
+void UC2_TraceLoaderMethodResult(X86Context& ctx, uint8_t* base) {
     (void)base;
     static std::atomic<uint32_t> returns{0};
     uint32_t sample = 0;
