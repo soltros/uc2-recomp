@@ -66,6 +66,10 @@ non-timeout worker results and completion-handler entry/return. Compare those
 records with the recomp's `UC2 wait raw args` and `UC2 wait-handle` lines to
 see whether the reference signals the main loading event after opening the
 map packages and whether the worker handles resolve to the same object types.
+The trace also records the five XPP call sites that invoke `KeSetEvent`, since
+the XPP async-completion path signals dispatcher objects through that kernel
+API rather than the `NtSetEvent` wrapper. Those records include the XPP call
+site and the event object's pointer and arguments.
 At the post-call breakpoints, the kernel export has already popped its stdcall
 arguments, so each event handle is read from `[ESP+4]` after the wrapper's
 return address. This keeps the set/clear/pulse records tied to the actual

@@ -167,6 +167,48 @@ commands
   continue
 end
 
+# XPP's async completion paths signal dispatcher objects through KeSetEvent,
+# not NtSetEvent. Capture each XPP call site before entering the kernel thunk;
+# its three stack arguments are object, increment, and wait.
+define uc2-log-xpp-ke-set
+  printf "UC2 XPP KeSetEvent site=%08x object=%08x increment=%08x wait=%08x\n", $eip, *(unsigned int*)$esp, *(unsigned int*)($esp+4), *(unsigned int*)($esp+8)
+end
+
+break *0x00395E86
+commands
+  silent
+  uc2-log-xpp-ke-set
+  continue
+end
+
+break *0x00396067
+commands
+  silent
+  uc2-log-xpp-ke-set
+  continue
+end
+
+break *0x00396BCC
+commands
+  silent
+  uc2-log-xpp-ke-set
+  continue
+end
+
+break *0x0039B90F
+commands
+  silent
+  uc2-log-xpp-ke-set
+  continue
+end
+
+break *0x0039BE52
+commands
+  silent
+  uc2-log-xpp-ke-set
+  continue
+end
+
 # At this point EAX is the result of the worker's wait-for-multiple-objects.
 # Ignore ordinary timeout polls and stop only when Xemu reports a signal or
 # another wait result, then log and continue automatically.
