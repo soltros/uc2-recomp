@@ -19,6 +19,16 @@ at = 0x002A6C62
 call = "UC2_NullLookupArray"
 on_true = 0x002A6CFC
 
+# Capture the loader object's state immediately around its virtual method call.
+[[hook]]
+at = 0x000283CC
+call = "UC2_TraceLoaderMethod"
+
+[[hook]]
+at = 0x000283CC
+call = "UC2_TraceLoaderMethodResult"
+after = true
+
 # extra entry points
 [functions]
 

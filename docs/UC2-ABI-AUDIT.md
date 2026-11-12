@@ -115,6 +115,8 @@ The paired recomp log `diagnostic_logs/xberecomp_20261111_224832.log` reaches th
 
 The loader-state GDB breakpoints were initially entered as `0x002833CC` and `0x002833CF`, outside the actual guest code addresses. They are corrected in `scripts/xemu-uc2-trace.gdb` to `0x000283CC` and `0x000283CF`; those probes were not active in the completed trace above. A future targeted capture can use them if we need to inspect the guest object's state around its vtable call.
 
+The recomp now uses XboxXBERecomp's instruction-hook API before and after the indirect call at `0x000283CC`. `UC2_TraceLoaderMethod` records the guest object, vtable target, and fields at `+0x10` and `+0x14`; `UC2_TraceLoaderMethodResult` records the return value and those fields again. This will show whether the loader object changes state during the call in the stalled recomp, without changing guest control flow.
+
 ## XPP completion-event ABI
 
 Static inspection of the XPP asynchronous-completion path at `0x00396529` shows the state record in ESI. It pushes the output pointer `ESI+0x0C`, object-type pointer `[0x0039D540]`, then the handle `[ESI+4]` before calling `ObReferenceObjectByHandle` (ordinal 246). This is the expected right-to-left order for three stack arguments. XboxXBERecomp's ordinal 246 handler reads the handle from argument 1 and writes the referenced guest dispatcher-object address through argument 3. The caller checks the returned NTSTATUS and clears the stored handle and object pointer if the reference fails. The stack shape and output slot match.
