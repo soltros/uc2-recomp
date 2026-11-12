@@ -72,6 +72,10 @@ API rather than the `NtSetEvent` wrapper. Those records include the XPP call
 site and the event object's pointer and arguments. It also records XPP's
 `ObReferenceObjectByHandle` result, mapping the file/event handle to the
 dispatcher object's guest address for correlation with the wait list.
+It also records the XPP `IoCreateDevice` arguments and return status, plus
+`IoStartPacket`/`IoStartNextPacket` calls. These show whether XPP's virtual
+device initialization and packet path actually run during the Aqueduct load,
+and whether device creation succeeds before the packet queue is used.
 At the post-call breakpoints, the kernel export has already popped its stdcall
 arguments, so each event handle is read from `[ESP+4]` after the wrapper's
 return address. This keeps the set/clear/pulse records tied to the actual

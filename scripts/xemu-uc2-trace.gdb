@@ -220,6 +220,41 @@ commands
   continue
 end
 
+# XPP's device initialization helper creates virtual device objects here. The
+# return status controls whether it initializes that device's extension, so
+# capture both the six arguments and status during the reference run. This
+# shows whether this path is active while loading Aqueduct.
+break *0x00395879
+commands
+  silent
+  printf "UC2 IoCreateDevice args=%08x/%08x/%08x/%08x/%08x/%08x\n", *(unsigned int*)$esp, *(unsigned int*)($esp+4), *(unsigned int*)($esp+8), *(unsigned int*)($esp+12), *(unsigned int*)($esp+16), *(unsigned int*)($esp+20)
+  continue
+end
+
+break *0x0039587F
+commands
+  silent
+  printf "UC2 IoCreateDevice return status=%08x output_slot=%08x\n", $eax, $ebp-4
+  continue
+end
+
+# These XPP packet dispatch sites include the device object and IRP so an
+# active request can be correlated with the same device and completion path
+# in the recomp.
+break *0x0039C187
+commands
+  silent
+  printf "UC2 IoStartPacket device=%08x irp=%08x key=%08x\n", *(unsigned int*)$esp, *(unsigned int*)($esp+4), *(unsigned int*)($esp+8)
+  continue
+end
+
+break *0x0039C1D5
+commands
+  silent
+  printf "UC2 IoStartNextPacket device=%08x\n", *(unsigned int*)$esp
+  continue
+end
+
 # At this point EAX is the result of the worker's wait-for-multiple-objects.
 # Ignore ordinary timeout polls and stop only when Xemu reports a signal or
 # another wait result, then log and continue automatically.
