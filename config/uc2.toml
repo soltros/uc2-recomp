@@ -18,6 +18,9 @@ trace = [
     # Include the generic XMV stream constructor: this is the caller that
     # decides whether to create a player before the lower-level setup runs.
     0x0002E400, 0x0002E9B0, 0x000303D0, 0x002C534D,
+    # UCMenu's PreviewMenu passes MovieMaterial to HandleObject, which calls
+    # Dispose before drawing. Trace its native streaming entry points directly.
+    0x000E9B90, 0x000E9BB0, 0x000E9BD0,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
