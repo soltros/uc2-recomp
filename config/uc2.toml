@@ -12,7 +12,6 @@ partitions = 64
 trace = [
     0x00255B20, 0x002A6E6E,
     0x00028300, 0x00028410, 0x00028540, 0x00028DC0, 0x00028E90,
-    0x000289F1, 0x00028A61, 0x00028AE7,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
@@ -32,6 +31,16 @@ call = "UC2_TraceLoaderMethod"
 at = 0x000283CC
 call = "UC2_TraceLoaderMethodResult"
 after = true
+
+# Trace the cache check result and the path where a missing item enters the
+# loader's pending-file list. These addresses are inside FUN_00028540.
+[[hook]]
+at = 0x000286C7
+call = "UC2_TracePackageCacheResult"
+
+[[hook]]
+at = 0x00028A61
+call = "UC2_TracePackageQueueInsert"
 
 # extra entry points
 [functions]
