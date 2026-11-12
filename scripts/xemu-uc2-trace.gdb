@@ -16,6 +16,8 @@ set $uc2_worker_h0_2 = 0
 set $uc2_worker_h1_2 = 0
 set $uc2_worker_h0_3 = 0
 set $uc2_worker_h1_3 = 0
+set $uc2_loader_method_calls = 0
+set $uc2_loader_method_returns = 0
 break *0x002667DE
 commands
   silent
@@ -64,6 +66,32 @@ commands
   silent
   if $uc2_main_event_handle != 0 && *(unsigned int*)($ebp+8) == $uc2_main_event_handle
     printf "UC2 main single wait return handle=%08x status=%08x\n", *(unsigned int*)($ebp+8), $eax
+  end
+  continue
+end
+
+# The match loader clears its main event from the method call at 0x283CC,
+# then waits on that event before checking this object's +0x10 state. Capture
+# the vtable method's object state on both sides to locate the missing wakeup
+# relative to package reads and worker completions.
+break *0x002833CC
+commands
+  silent
+  set $uc2_loader_method_calls = $uc2_loader_method_calls + 1
+  if $uc2_loader_method_calls <= 16 || $uc2_loader_method_calls % 128 == 0
+    printf "UC2 loader method call[%u] object=%08x vtable=%08x method=%08x state10=%08x state14=%08x\n", $uc2_loader_method_calls, $edi, *(unsigned int*)($edi+8), *(unsigned int*)(*(unsigned int*)($edi+8)+0x14), *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
+    x/8wx $edi
+  end
+  continue
+end
+
+break *0x002833CF
+commands
+  silent
+  set $uc2_loader_method_returns = $uc2_loader_method_returns + 1
+  if $uc2_loader_method_returns <= 16 || $uc2_loader_method_returns % 128 == 0
+    printf "UC2 loader method return[%u] object=%08x eax=%08x state10=%08x state14=%08x\n", $uc2_loader_method_returns, $edi, $eax, *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
+    x/8wx $edi
   end
   continue
 end
