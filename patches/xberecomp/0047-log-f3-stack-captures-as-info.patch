@@ -1,0 +1,55 @@
+diff --git a/sdk/runtime/app/main_linux.cpp b/sdk/runtime/app/main_linux.cpp
+index 4b280da..4fc0b2d 100644
+--- a/sdk/runtime/app/main_linux.cpp
++++ b/sdk/runtime/app/main_linux.cpp
+@@ -91,7 +91,7 @@ void DumpThreads() {
+     for (auto& t : kernel::Threads())
+         if (t->ctx) {
+             LOGI("thread %X", t->id);
+-            kernel::LogGuestStack(*t->ctx, 32);
++            kernel::LogGuestStack(*t->ctx, 32, false);
+         }
+ }
+ 
+diff --git a/sdk/runtime/cpu/dispatch.cpp b/sdk/runtime/cpu/dispatch.cpp
+index 4753eaa..2665dd4 100644
+--- a/sdk/runtime/cpu/dispatch.cpp
++++ b/sdk/runtime/cpu/dispatch.cpp
+@@ -233,14 +233,20 @@ uint32_t CallGuest(X86Context& ctx, uint32_t fn, const uint32_t* args, size_t co
+ 
+ namespace kernel {
+ // return addresses found on the guest stack, the cheapest way to place a guest event
+-void LogGuestStack(X86Context& ctx, int words) {
+-    LOGE("  eax %08X ecx %08X edx %08X ebx %08X esp %08X ebp %08X esi %08X edi %08X", ctx.eax, ctx.ecx, ctx.edx, ctx.ebx,
+-         ctx.esp, ctx.ebp, ctx.esi, ctx.edi);
++void LogGuestStack(X86Context& ctx, int words, bool error) {
++    auto write = [error](const char* format, auto... args) {
++        if (error)
++            LOGE(format, args...);
++        else
++            LOGI(format, args...);
++    };
++    write("  eax %08X ecx %08X edx %08X ebx %08X esp %08X ebp %08X esi %08X edi %08X", ctx.eax, ctx.ecx, ctx.edx,
++          ctx.ebx, ctx.esp, ctx.ebp, ctx.esi, ctx.edi);
+     for (int i = 0; i < words; i++) {
+         uint32_t a = ctx.esp + uint32_t(i) * 4;
+         if (!mem::IsCommitted(a)) break;
+         uint32_t v = R32(a);
+-        if (dispatch::InCode(v)) LOGE("  [esp+%03X] %08X", i * 4, v);
++        if (dispatch::InCode(v)) write("  [esp+%03X] %08X", i * 4, v);
+     }
+ }
+ }  // namespace kernel
+diff --git a/sdk/runtime/kernel/kernel.h b/sdk/runtime/kernel/kernel.h
+index bba081a..ec37f51 100644
+--- a/sdk/runtime/kernel/kernel.h
++++ b/sdk/runtime/kernel/kernel.h
+@@ -166,7 +166,7 @@ void StartHostThread(const char* name, std::function<void(X86Context&)> fn);
+ void NameHostThread(const char* name);  // the calling host thread, as debuggers and profilers list it
+ void RunDpcs(X86Context& ctx);
+ void InitKernelData();
+-void LogGuestStack(X86Context& ctx, int words);
++void LogGuestStack(X86Context& ctx, int words, bool error = true);
+ X86Context& CurrentContext();
+ ThreadRef CreateThread(uint32_t stack_size, uint32_t tls_size, uint32_t system_routine, uint32_t start_routine,
+                        uint32_t start_context, bool suspended);
