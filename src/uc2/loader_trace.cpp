@@ -38,11 +38,12 @@ void TraceLoaderRoutine(const char* name, std::atomic<uint32_t>& calls, X86Conte
     uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
     if (sample >= 64 && sample % 128 != 0) return;
 
+    uint32_t return_address = GuestWord(ctx.esp);
     uint32_t stack0 = GuestWord(ctx.esp + 4);
     uint32_t stack1 = GuestWord(ctx.esp + 8);
     uint32_t stack2 = GuestWord(ctx.esp + 12);
     LOGI("UC2 %s[%u] esp=%08X ret=%08X args=%08X/%08X/%08X eax=%08X ebx=%08X ecx=%08X edx=%08X esi=%08X edi=%08X",
-         name, sample, ctx.esp, stack0, stack0, stack1, stack2,
+         name, sample, ctx.esp, return_address, stack0, stack1, stack2,
          ctx.eax, ctx.ebx, ctx.ecx, ctx.edx, ctx.esi, ctx.edi);
 }
 
