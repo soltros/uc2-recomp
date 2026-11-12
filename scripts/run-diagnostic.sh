@@ -54,7 +54,7 @@ if [[ -n "$capture_after_secs" ]]; then
 else
     capture_description="every ${capture_interval_secs}s"
 fi
-echo "  captures:   $capture_dir (automatic captures $capture_description; F3 also works)" | tee -a "$log"
+echo "  captures:   $capture_dir (automatic GPU captures $capture_description; F3 also dumps guest thread stacks)" | tee -a "$log"
 echo "  stop:       close the game window when finished" | tee -a "$log"
 
 set +e
@@ -65,8 +65,8 @@ set +e
     "$binary" >>"$log" 2>&1 &
 runner_pid=$!
 
-# The Linux fork installs SIGUSR1 as a frame-capture request (the same action
-# as F3). Walk through wrapper processes so the signal reaches uc2_recomp.
+# The Linux fork installs SIGUSR1 as a frame-capture request. Unlike F3, it
+# does not dump guest thread stacks. Walk wrappers so the signal reaches uc2_recomp.
 capture_pid=""
 if [[ "$capture_after_secs" != "0" ]]; then
     (
