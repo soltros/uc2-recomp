@@ -12,6 +12,7 @@ partitions = 64
 trace = [
     0x00255B20, 0x002A6E6E,
     0x00028300, 0x00028410, 0x00028540, 0x00028DC0, 0x00028E90,
+    0x000299D0, 0x0002A7F0,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
@@ -108,6 +109,17 @@ call = "UC2_TracePackageOpenSource"
 [[hook]]
 at = 0x00028980
 call = "UC2_TracePackageOpenDestination"
+
+# The package queue is populated, but no later async map open occurs. Trace
+# the title's downstream resource enumeration and resource-object creation
+# to see whether queued packages reach the next loader stage.
+[[hook]]
+at = 0x000299D0
+call = "UC2_TraceResourceEnumeration"
+
+[[hook]]
+at = 0x0002A7F0
+call = "UC2_TraceResourceObjectCreate"
 
 # extra entry points
 [functions]

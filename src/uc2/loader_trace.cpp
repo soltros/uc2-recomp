@@ -250,3 +250,39 @@ void UC2_TracePackageOpenDestination(X86Context& ctx, uint8_t* base) {
          GuestWord(ctx.esp + 16), GuestWord(ctx.esp + 20),
          GuestWord(ctx.esp + 24));
 }
+
+namespace {
+
+void TraceResourceEntry(const char* name, std::atomic<uint32_t>& calls,
+                        X86Context& ctx, uint8_t* base) {
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    // These routines enumerate package objects rather than running each
+    // frame. Retain enough startup context and then periodic samples so a
+    // later level transition remains visible in long interactive runs.
+    if (sample >= 128 && sample % 128 != 0) return;
+
+    uint32_t arg0 = GuestWord(ctx.esp + 4);
+    uint32_t arg1 = GuestWord(ctx.esp + 8);
+    uint32_t arg2 = GuestWord(ctx.esp + 12);
+    uint32_t arg3 = GuestWord(ctx.esp + 16);
+    char string0[256];
+    char string1[256];
+    GuestString(arg0, base, string0);
+    GuestString(arg1, base, string1);
+    LOGI("UC2 %s[%u] caller=%08X esp=%08X args=%08X/%08X/%08X/%08X strings='%s'/'%s' eax=%08X ebx=%08X ecx=%08X edx=%08X esi=%08X edi=%08X",
+         name, sample, GuestWord(ctx.esp), ctx.esp, arg0, arg1, arg2, arg3,
+         string0, string1, ctx.eax, ctx.ebx, ctx.ecx, ctx.edx, ctx.esi,
+         ctx.edi);
+}
+
+}  // namespace
+
+void UC2_TraceResourceEnumeration(X86Context& ctx, uint8_t* base) {
+    static std::atomic<uint32_t> calls{0};
+    TraceResourceEntry("resource enumeration", calls, ctx, base);
+}
+
+void UC2_TraceResourceObjectCreate(X86Context& ctx, uint8_t* base) {
+    static std::atomic<uint32_t> calls{0};
+    TraceResourceEntry("resource object create", calls, ctx, base);
+}
