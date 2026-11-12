@@ -167,6 +167,17 @@ commands
   continue
 end
 
+# XPP converts asynchronous event handles to dispatcher-object pointers before
+# it calls KeSetEvent. At this return site, ESI is the XPP state record and
+# stores both the original handle (+4) and ObReferenceObjectByHandle output
+# pointer (+0x0c).
+break *0x0039652F
+commands
+  silent
+  printf "UC2 XPP ObReferenceObjectByHandle handle=%08x status=%08x object=%08x\n", *(unsigned int*)($esi+4), $eax, *(unsigned int*)($esi+0x0c)
+  continue
+end
+
 # XPP's async completion paths signal dispatcher objects through KeSetEvent,
 # not NtSetEvent. Capture each XPP call site before entering the kernel thunk;
 # its three stack arguments are object, increment, and wait.

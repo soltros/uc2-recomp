@@ -69,7 +69,9 @@ map packages and whether the worker handles resolve to the same object types.
 The trace also records the five XPP call sites that invoke `KeSetEvent`, since
 the XPP async-completion path signals dispatcher objects through that kernel
 API rather than the `NtSetEvent` wrapper. Those records include the XPP call
-site and the event object's pointer and arguments.
+site and the event object's pointer and arguments. It also records XPP's
+`ObReferenceObjectByHandle` result, mapping the file/event handle to the
+dispatcher object's guest address for correlation with the wait list.
 At the post-call breakpoints, the kernel export has already popped its stdcall
 arguments, so each event handle is read from `[ESP+4]` after the wrapper's
 return address. This keeps the set/clear/pulse records tied to the actual
