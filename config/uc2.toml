@@ -12,6 +12,7 @@ partitions = 64
 trace = [
     0x00255B20, 0x002A6E6E,
     0x00028300, 0x00028410, 0x00028540, 0x00028DC0, 0x00028E90,
+    0x000289F1, 0x00028A61, 0x00028AE7,
 ]
 code_sections = [".text", "XMV", "D3DX", "DSOUND", "XNET", "XONLINE", "WMADEC", "XACTENG", "XGRPH", "D3D", "XPP"]
 library = "UnrealChampionship2.dll"  # <exe>.dll, which the executable delay loads
