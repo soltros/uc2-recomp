@@ -18,6 +18,8 @@ set $uc2_worker_h0_3 = 0
 set $uc2_worker_h1_3 = 0
 set $uc2_loader_method_calls = 0
 set $uc2_loader_method_returns = 0
+set $uc2_cache_check_calls = 0
+set $uc2_queue_insert_calls = 0
 break *0x002667DE
 commands
   silent
@@ -92,6 +94,45 @@ commands
   if $uc2_loader_method_returns <= 16 || $uc2_loader_method_returns % 128 == 0
     printf "UC2 loader method return[%u] object=%08x eax=%08x state10=%08x state14=%08x\n", $uc2_loader_method_returns, $edi, $eax, *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
     x/8wx $edi
+  end
+  continue
+end
+
+# Compare the guest cache decision and pending-queue insertion with the
+# recomp's hooks. EBX points at the path at both sites; 0x286C7 is immediately
+# after FUN_00028DC0 returns, and 0x28A61 appends the path to the work list.
+break *0x000286C2
+commands
+  silent
+  set $uc2_cache_check_calls = $uc2_cache_check_calls + 1
+  if $uc2_cache_check_calls <= 16 || $uc2_cache_check_calls % 128 == 0
+    printf "UC2 package cache check call[%u] path=%08x ebx=%08x\n", $uc2_cache_check_calls, $ebx, $ebx
+    if $ebx != 0
+      x/s $ebx
+    end
+  end
+  continue
+end
+
+break *0x000286C7
+commands
+  silent
+  if $uc2_cache_check_calls <= 16 || $uc2_cache_check_calls % 128 == 0
+    printf "UC2 package cache check return[%u] eax=%08x path=%08x\n", $uc2_cache_check_calls, $eax, $ebx
+  end
+  continue
+end
+
+break *0x00028A61
+commands
+  silent
+  set $uc2_queue_insert_calls = $uc2_queue_insert_calls + 1
+  if $uc2_queue_insert_calls <= 16 || $uc2_queue_insert_calls % 128 == 0
+    set $uc2_queue_path_ptr = *(unsigned int*)($esp+0x1c)
+    printf "UC2 package queue insert[%u] count=%u length=%u path_ptr=%08x\n", $uc2_queue_insert_calls, $esi, $ebx, $uc2_queue_path_ptr
+    if $uc2_queue_path_ptr != 0
+      x/s $uc2_queue_path_ptr
+    end
   end
   continue
 end
