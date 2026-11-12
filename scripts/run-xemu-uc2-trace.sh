@@ -81,6 +81,11 @@ nix shell nixpkgs#gdb -c gdb -q -batch -x "$repo_root/scripts/xemu-uc2-trace.gdb
 gdb_status=${PIPESTATUS[0]}
 set -e
 
+if ((gdb_status != 0 && attach_existing)) && ! ss -H -ltn 'sport = :1234' | rg -q .; then
+    echo "Guest GDB server closed; keeping the completed trace at $trace_log."
+    gdb_status=0
+fi
+
 if ((gdb_status != 0)); then
     if ((attach_existing)); then
         echo "GDB exited with status $gdb_status. The existing Xemu instance was left alone." >&2
