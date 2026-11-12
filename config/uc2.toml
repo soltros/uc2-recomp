@@ -52,6 +52,10 @@ at = 0x00028410
 call = "UC2_TracePackageWorker"
 
 [[hook]]
+at = 0x00028376
+call = "UC2_TracePackageWorkerResult"
+
+[[hook]]
 at = 0x00028540
 call = "UC2_TracePackageProcess"
 

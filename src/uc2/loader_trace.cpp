@@ -61,6 +61,19 @@ void UC2_TracePackageWorker(X86Context& ctx, uint8_t* base) {
     TraceLoaderRoutine("package worker", calls, ctx);
 }
 
+void UC2_TracePackageWorkerResult(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    if (sample >= 64 && sample % 128 != 0) return;
+
+    // This is the instruction after FUN_00028410 returns and before its caller
+    // tests [ESP+0x18] to decide whether to invoke FUN_00028540.
+    LOGI("UC2 package worker result[%u] esp=%08X ret=%08X local14=%08X local18=%08X local1c=%08X object=%08X",
+         sample, ctx.esp, GuestWord(ctx.esp), GuestWord(ctx.esp + 0x14),
+         GuestWord(ctx.esp + 0x18), GuestWord(ctx.esp + 0x1C), ctx.edi);
+}
+
 void UC2_TracePackageProcess(X86Context& ctx, uint8_t* base) {
     (void)base;
     static std::atomic<uint32_t> calls{0};
