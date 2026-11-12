@@ -234,7 +234,11 @@ end
 break *0x0039587F
 commands
   silent
-  printf "UC2 IoCreateDevice return status=%08x output_slot=%08x\n", $eax, $ebp-4
+  if ($eax & 0x80000000) == 0
+    printf "UC2 IoCreateDevice return status=%08x device=%08x\n", $eax, *(unsigned int*)($ebp-4)
+  else
+    printf "UC2 IoCreateDevice return status=%08x\n", $eax
+  end
   continue
 end
 
@@ -248,10 +252,24 @@ commands
   continue
 end
 
+break *0x0039C18D
+commands
+  silent
+  printf "UC2 IoStartPacket return status=%08x device=%08x\n", $eax, $edi
+  continue
+end
+
 break *0x0039C1D5
 commands
   silent
   printf "UC2 IoStartNextPacket device=%08x\n", *(unsigned int*)$esp
+  continue
+end
+
+break *0x0039C1DB
+commands
+  silent
+  printf "UC2 IoStartNextPacket return status=%08x device=%08x\n", $eax, *(unsigned int*)$esi
   continue
 end
 
