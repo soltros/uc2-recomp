@@ -96,6 +96,12 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'auto unique_stamp =' "$tool_root/src/d3d/vulkan_linux.cpp" && \
          rg -q 'CaptureRequested\(\)' "$tool_root/src/d3d/vulkan_linux.cpp"; then
         echo "$(basename "$tool_patch") fix is already present."
+    elif [[ "$(basename "$tool_patch")" == "0018-fallback-uc2-disc-content.patch" ]] && \
+         rg -q 'fs::path host = MatchCase\(best->second, parts\);' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         ! rg -q 'HDD content fallback to game disc' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        # Patch 0046 intentionally removes this fallback after it was applied;
+        # recognize that final isolated-cache state on incremental builds.
+        echo "$(basename "$tool_patch") is already applied (later isolated by 0046)."
     elif [[ "$(basename "$tool_patch")" == "0022-diagnose-uc2-load-waits.patch" ]] && \
          rg -q 'Trace long waits from the main guest threads too' "$tool_root/sdk/runtime/kernel/objects.cpp" && \
          rg -q 'wait\[%u\] object\[%zu\]' "$tool_root/sdk/runtime/kernel/objects.cpp"; then
