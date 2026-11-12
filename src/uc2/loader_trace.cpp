@@ -70,23 +70,25 @@ void UC2_TraceLoaderMethodResult(X86Context& ctx, uint8_t* base) {
 
 void UC2_TracePackageCacheResult(X86Context& ctx, uint8_t* base) {
     static std::atomic<uint32_t> calls{0};
-    uint32_t sample = 0;
-    if (!ShouldTrace(calls, sample)) return;
+    uint32_t call = calls.fetch_add(1, std::memory_order_relaxed);
 
     char path[256];
     GuestString(ctx.ebx, base, path);
-    LOGI("UC2 package cache check[%u] result=%u path=%s ebx=%08X", sample, ctx.eax, path, ctx.ebx);
+    LOGI("UC2 package cache check[%u] result=%u path=%s ebx=%08X", call, ctx.eax, path, ctx.ebx);
 }
 
 void UC2_TracePackageQueueInsert(X86Context& ctx, uint8_t* base) {
     static std::atomic<uint32_t> calls{0};
-    uint32_t sample = 0;
-    if (!ShouldTrace(calls, sample)) return;
+    uint32_t call = calls.fetch_add(1, std::memory_order_relaxed);
 
-    char esi[256];
-    char ebx[256];
-    GuestString(ctx.esi, base, esi);
-    GuestString(ctx.ebx, base, ebx);
-    LOGI("UC2 package queue insert[%u] esi=%08X '%s' ebx=%08X '%s' eax=%08X",
-         sample, ctx.esi, esi, ctx.ebx, ebx, ctx.eax);
+    // At 0x28A61 the game appends the string at [ESP+0x1C] to its pending
+    // package list. ESI is the prior list count and EBX is the string length;
+    // neither register points to a string at this instruction.
+    uint32_t path_slot = ctx.esp <= 0xFFFFFFE3 ? ctx.esp + 0x1C : kUnreadable;
+    uint32_t path_ptr = path_slot == kUnreadable ? kUnreadable : GuestWord(path_slot);
+    char path[256];
+    if (path_ptr == kUnreadable) path[0] = '\0';
+    else GuestString(path_ptr, base, path);
+    LOGI("UC2 package queue insert[%u] count=%u length=%u path=%s path_ptr=%08X",
+         call, ctx.esi, ctx.ebx, path, path_ptr);
 }
