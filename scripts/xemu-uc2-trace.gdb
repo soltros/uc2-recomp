@@ -70,11 +70,10 @@ commands
   continue
 end
 
-# The match loader clears its main event from the method call at 0x283CC,
-# then waits on that event before checking this object's +0x10 state. Capture
-# the vtable method's object state on both sides to locate the missing wakeup
-# relative to package reads and worker completions.
-break *0x002833CC
+# The match loader calls this vtable method at 0x283CC, then checks the
+# object's +0x10 state at 0x283CF. Capture it on both sides to locate the
+# transition relative to package reads and worker completions.
+break *0x000283CC
 commands
   silent
   set $uc2_loader_method_calls = $uc2_loader_method_calls + 1
@@ -85,7 +84,7 @@ commands
   continue
 end
 
-break *0x002833CF
+break *0x000283CF
 commands
   silent
   set $uc2_loader_method_returns = $uc2_loader_method_returns + 1
