@@ -137,6 +137,11 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
         # Patch 0032 broadens the CTF map selector on the same line, so Git
         # cannot reverse-check 0031's context after both patches are present.
         echo "$(basename "$tool_patch") font tracing is already present (extended by 0032)."
+    elif [[ "$(basename "$tool_patch")" == "0032-trace-selected-ctf-map-io.patch" ]] && \
+         rg -q '"CTF-"' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        # Later file-trace patches add more names to this same array, which
+        # prevents Git's reverse-check from matching the original one-line edit.
+        echo "$(basename "$tool_patch") map tracing is already present (extended by later file traces)."
     elif [[ "$(basename "$tool_patch")" == "0035-trace-uc2-wait-handle-bindings.patch" ]] && \
          rg -q 'UC2 wait-handle\[%u\]' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
          rg -q 'UC2 ObReferenceObjectByHandle handle=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
