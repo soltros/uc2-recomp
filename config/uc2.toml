@@ -84,6 +84,14 @@ call = "UC2_TracePackageDispatchTaken"
 at = 0x00028AEE
 call = "UC2_TracePackageDispatchSkipped"
 
+[[hook]]
+at = 0x00028937
+call = "UC2_TracePackageOpenSource"
+
+[[hook]]
+at = 0x00028980
+call = "UC2_TracePackageOpenDestination"
+
 # extra entry points
 [functions]
 

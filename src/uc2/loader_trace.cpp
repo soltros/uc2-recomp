@@ -145,8 +145,7 @@ void UC2_TracePackageQueueInsert(X86Context& ctx, uint8_t* base) {
 void UC2_TracePackageDispatchGate(X86Context& ctx, uint8_t* base) {
     (void)base;
     static std::atomic<uint32_t> calls{0};
-    uint32_t sample = 0;
-    if (!ShouldTrace(calls, sample)) return;
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
 
     // FUN_00028540 checks [ESP+0x14] at 0x289E4 before deciding whether to
     // process the staged package/cache operation or skip to its cleanup path.
@@ -158,27 +157,58 @@ void UC2_TracePackageDispatchGate(X86Context& ctx, uint8_t* base) {
     uint32_t stack1c = GuestWord(ctx.esp + 0x1C);
     uint32_t list_count = GuestWord(ctx.ebp + 0x24);
     uint32_t list_capacity = GuestWord(ctx.ebp + 0x28);
-    LOGI("UC2 package dispatch gate[%u] esp=%08X ebp=%08X value=%08X stack18=%08X stack1c=%08X list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
-         sample, ctx.esp, ctx.ebp, gate, stack18, stack1c, list_count,
+    char path[256];
+    if (stack1c == kUnreadable) path[0] = '\0';
+    else GuestString(stack1c, base, path);
+    LOGI("UC2 package dispatch gate[%u] esp=%08X ebp=%08X value=%08X stack18=%08X stack1c=%08X path=%s list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
+         sample, ctx.esp, ctx.ebp, gate, stack18, stack1c, path, list_count,
          list_capacity, ctx.eax, ctx.ebx, ctx.esi, ctx.edi);
 }
 
 void UC2_TracePackageDispatchTaken(X86Context& ctx, uint8_t* base) {
-    (void)base;
     static std::atomic<uint32_t> calls{0};
-    uint32_t sample = 0;
-    if (!ShouldTrace(calls, sample)) return;
-    LOGI("UC2 package dispatch selected[%u] esp=%08X ebp=%08X list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
-         sample, ctx.esp, ctx.ebp, GuestWord(ctx.ebp + 0x24),
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    uint32_t path_ptr = GuestWord(ctx.esp + 0x1C);
+    char path[256];
+    if (path_ptr == kUnreadable) path[0] = '\0';
+    else GuestString(path_ptr, base, path);
+    LOGI("UC2 package dispatch selected[%u] esp=%08X ebp=%08X path_ptr=%08X path=%s list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
+         sample, ctx.esp, ctx.ebp, path_ptr, path, GuestWord(ctx.ebp + 0x24),
          GuestWord(ctx.ebp + 0x28), ctx.eax, ctx.ebx, ctx.esi, ctx.edi);
 }
 
 void UC2_TracePackageDispatchSkipped(X86Context& ctx, uint8_t* base) {
-    (void)base;
     static std::atomic<uint32_t> calls{0};
-    uint32_t sample = 0;
-    if (!ShouldTrace(calls, sample)) return;
-    LOGI("UC2 package dispatch skipped[%u] esp=%08X ebp=%08X list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
-         sample, ctx.esp, ctx.ebp, GuestWord(ctx.ebp + 0x24),
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    uint32_t path_ptr = GuestWord(ctx.esp + 0x1C);
+    char path[256];
+    if (path_ptr == kUnreadable) path[0] = '\0';
+    else GuestString(path_ptr, base, path);
+    LOGI("UC2 package dispatch skipped[%u] esp=%08X ebp=%08X path_ptr=%08X path=%s list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
+         sample, ctx.esp, ctx.ebp, path_ptr, path, GuestWord(ctx.ebp + 0x24),
          GuestWord(ctx.ebp + 0x28), ctx.eax, ctx.ebx, ctx.esi, ctx.edi);
+}
+
+void UC2_TracePackageOpenSource(X86Context& ctx, uint8_t* base) {
+    static std::atomic<uint32_t> calls{0};
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    char path[256];
+    GuestString(ctx.eax, base, path);
+    LOGI("UC2 package open source[%u] pc=00028937 path_ptr=%08X path=%s args=%08X/%08X/%08X/%08X/%08X/%08X/%08X",
+         sample, ctx.eax, path, GuestWord(ctx.esp), GuestWord(ctx.esp + 4),
+         GuestWord(ctx.esp + 8), GuestWord(ctx.esp + 12),
+         GuestWord(ctx.esp + 16), GuestWord(ctx.esp + 20),
+         GuestWord(ctx.esp + 24));
+}
+
+void UC2_TracePackageOpenDestination(X86Context& ctx, uint8_t* base) {
+    static std::atomic<uint32_t> calls{0};
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    char path[256];
+    GuestString(ctx.eax, base, path);
+    LOGI("UC2 package open destination[%u] pc=00028980 path_ptr=%08X path=%s args=%08X/%08X/%08X/%08X/%08X/%08X/%08X",
+         sample, ctx.eax, path, GuestWord(ctx.esp), GuestWord(ctx.esp + 4),
+         GuestWord(ctx.esp + 8), GuestWord(ctx.esp + 12),
+         GuestWord(ctx.esp + 16), GuestWord(ctx.esp + 20),
+         GuestWord(ctx.esp + 24));
 }
