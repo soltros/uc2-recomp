@@ -32,6 +32,33 @@ at = 0x000283CC
 call = "UC2_TraceLoaderMethodResult"
 after = true
 
+# Observe the guest package-loader call chain independently of the XInput
+# worker, including which package/cache operation returns to the loader loop.
+[[hook]]
+at = 0x00028300
+call = "UC2_TraceLoaderLoop"
+
+[[hook]]
+at = 0x00028410
+call = "UC2_TracePackageWorker"
+
+[[hook]]
+at = 0x00028540
+call = "UC2_TracePackageProcess"
+
+[[hook]]
+at = 0x00028540
+call = "UC2_TracePackageProcessResult"
+after = true
+
+[[hook]]
+at = 0x00028DC0
+call = "UC2_TraceCacheLookup"
+
+[[hook]]
+at = 0x00028E90
+call = "UC2_TraceCacheCopy"
+
 # Trace the cache check result and the path where a missing item enters the
 # loader's pending-file list. These addresses are inside FUN_00028540.
 [[hook]]

@@ -34,7 +34,55 @@ void GuestString(uint32_t address, uint8_t* base, char (&out)[256]) {
     }
 }
 
+void TraceLoaderRoutine(const char* name, std::atomic<uint32_t>& calls, X86Context& ctx) {
+    uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
+    if (sample >= 64 && sample % 128 != 0) return;
+
+    uint32_t stack0 = GuestWord(ctx.esp + 4);
+    uint32_t stack1 = GuestWord(ctx.esp + 8);
+    uint32_t stack2 = GuestWord(ctx.esp + 12);
+    LOGI("UC2 %s[%u] esp=%08X ret=%08X args=%08X/%08X/%08X eax=%08X ebx=%08X ecx=%08X edx=%08X esi=%08X edi=%08X",
+         name, sample, ctx.esp, stack0, stack0, stack1, stack2,
+         ctx.eax, ctx.ebx, ctx.ecx, ctx.edx, ctx.esi, ctx.edi);
+}
+
 }  // namespace
+
+void UC2_TraceLoaderLoop(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("loader loop", calls, ctx);
+}
+
+void UC2_TracePackageWorker(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("package worker", calls, ctx);
+}
+
+void UC2_TracePackageProcess(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("package process", calls, ctx);
+}
+
+void UC2_TracePackageProcessResult(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("package process return", calls, ctx);
+}
+
+void UC2_TraceCacheLookup(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("cache lookup", calls, ctx);
+}
+
+void UC2_TraceCacheCopy(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    static std::atomic<uint32_t> calls{0};
+    TraceLoaderRoutine("cache copy", calls, ctx);
+}
 
 void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
     (void)base;
