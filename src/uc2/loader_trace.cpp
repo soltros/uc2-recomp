@@ -177,16 +177,54 @@ void UC2_TracePackageDispatchTaken(X86Context& ctx, uint8_t* base) {
          GuestWord(ctx.ebp + 0x28), ctx.eax, ctx.ebx, ctx.esi, ctx.edi);
 }
 
-void UC2_TracePackageDispatchSkipped(X86Context& ctx, uint8_t* base) {
+void UC2_TracePackageDispatchComplete(X86Context& ctx, uint8_t* base) {
     static std::atomic<uint32_t> calls{0};
     uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
     uint32_t path_ptr = GuestWord(ctx.esp + 0x1C);
     char path[256];
     if (path_ptr == kUnreadable) path[0] = '\0';
     else GuestString(path_ptr, base, path);
-    LOGI("UC2 package dispatch skipped[%u] esp=%08X ebp=%08X path_ptr=%08X path=%s list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
+    LOGI("UC2 package dispatch complete[%u] esp=%08X ebp=%08X path_ptr=%08X path=%s list=%08X/%08X eax=%08X ebx=%08X esi=%08X edi=%08X",
          sample, ctx.esp, ctx.ebp, path_ptr, path, GuestWord(ctx.ebp + 0x24),
          GuestWord(ctx.ebp + 0x28), ctx.eax, ctx.ebx, ctx.esi, ctx.edi);
+}
+
+void UC2_TracePackageHandoff(X86Context& ctx, uint8_t* base) {
+    uint32_t object = ctx.edi;
+    uint32_t vtable = ctx.eax;
+    uint32_t method = vtable <= 0xFFFFFFFB ? GuestWord(vtable + 4) : kUnreadable;
+    uint32_t count = GuestWord(ctx.ebp + 0x24);
+    uint32_t entries = GuestWord(ctx.ebp + 0x20);
+    uint32_t path_ptr = ctx.esp <= 0xFFFFFFE3 ? GuestWord(ctx.esp + 0x1C) : kUnreadable;
+    char path[256];
+    if (path_ptr == kUnreadable) path[0] = '\0';
+    else GuestString(path_ptr, base, path);
+    LOGI("UC2 package handoff before object=%08X vtable=%08X method=%08X path=%s count=%u entries=%08X args=%08X/%08X",
+         object, vtable, method, path, count, entries, GuestWord(ctx.esp + 4),
+         GuestWord(ctx.esp + 8));
+}
+
+void UC2_TracePackageHandoffResult(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    LOGI("UC2 package handoff after object=%08X result=%08X count=%u entries=%08X esi=%08X edi=%08X",
+         ctx.edi, ctx.eax, GuestWord(ctx.ebp + 0x24), GuestWord(ctx.ebp + 0x20),
+         ctx.esi, ctx.edi);
+}
+
+void UC2_TracePackageFinalize(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    uint32_t object = ctx.edi;
+    uint32_t vtable = ctx.eax;
+    uint32_t method = vtable <= 0xFFFFFFF7 ? GuestWord(vtable + 8) : kUnreadable;
+    LOGI("UC2 package finalize before object=%08X vtable=%08X method=%08X count=%u entries=%08X",
+         object, vtable, method, GuestWord(ctx.ebp + 0x24), GuestWord(ctx.ebp + 0x20));
+}
+
+void UC2_TracePackageFinalizeResult(X86Context& ctx, uint8_t* base) {
+    (void)base;
+    LOGI("UC2 package finalize after object=%08X result=%08X count=%u entries=%08X esi=%08X edi=%08X",
+         ctx.edi, ctx.eax, GuestWord(ctx.ebp + 0x24), GuestWord(ctx.ebp + 0x20),
+         ctx.esi, ctx.edi);
 }
 
 void UC2_TracePackageOpenSource(X86Context& ctx, uint8_t* base) {

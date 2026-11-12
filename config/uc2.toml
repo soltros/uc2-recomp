@@ -69,9 +69,8 @@ call = "UC2_TracePackageCacheResult"
 at = 0x00028A61
 call = "UC2_TracePackageQueueInsert"
 
-# Capture the package processor's branch after cache staging. Xemu takes a
-# path that starts the selected map's async read; the recomp currently returns
-# to its loader event wait without doing so.
+# Capture the package processor's branch and both virtual callbacks that
+# hand a selected resource to the package loader.
 [[hook]]
 at = 0x000289E4
 call = "UC2_TracePackageDispatchGate"
@@ -82,7 +81,25 @@ call = "UC2_TracePackageDispatchTaken"
 
 [[hook]]
 at = 0x00028AEE
-call = "UC2_TracePackageDispatchSkipped"
+call = "UC2_TracePackageDispatchComplete"
+
+[[hook]]
+at = 0x00028A00
+call = "UC2_TracePackageHandoff"
+
+[[hook]]
+at = 0x00028A00
+call = "UC2_TracePackageHandoffResult"
+after = true
+
+[[hook]]
+at = 0x00028AEB
+call = "UC2_TracePackageFinalize"
+
+[[hook]]
+at = 0x00028AEB
+call = "UC2_TracePackageFinalizeResult"
+after = true
 
 [[hook]]
 at = 0x00028937
