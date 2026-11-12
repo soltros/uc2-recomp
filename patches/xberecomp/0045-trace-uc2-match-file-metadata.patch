@@ -1,0 +1,21 @@
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -52,6 +52,7 @@
+     const std::string upper = Upper(path);
+     static constexpr const char* traced[] = {
+         "CTF-",
++        "A_AQUEDUCT.XSB", "A_AQUEDUCT.XWB",
+         "K_MALE.UKX", "K_FEMALE.UKX", "K_SKAARJ.UKX", "K_WEAPONS.UKX", "K_PICKUPS.UKX",
+         "T_CHARACTERSKINS.UTX", "T_PORTRAIT.UTX", "GUICONTENT.UTX", "T_MENU_02.UTX", "T_UI.UTX", "T_UI_2.UTX",
+         "T_FONTS.UTX", "T_FONTS2.UTX", "PS2FONTS.UTX", "WARFAREFONTS.UTX", "T_HUD.UTX", "INTRO_CHARACTERS.UTX",
+@@ -636,6 +637,10 @@
+         std::fflush(f->fp);
+         size = fs::file_size(f->host, ec);
+     }
++    if (TraceUC2LevelIo(f->xbox))
++        LOGI("files: UC2 level query %s handle=%08X class=%u request=%u size=%llu pos=%llu synchronous=%u",
++             f->xbox.c_str(), h, cls, len, (unsigned long long)size, (unsigned long long)f->pos,
++             unsigned(f->synchronous));
+     std::memset(HostPtr(out), 0, len);
+     switch (cls) {
+         case 4: {  // FileBasicInformation
