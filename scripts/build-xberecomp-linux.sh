@@ -146,6 +146,12 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
     elif [[ "$(basename "$tool_patch")" == "0036-trace-uc2-wait-raw-arguments.patch" ]] && \
          rg -q 'UC2 wait raw args=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
         echo "$(basename "$tool_patch") diagnostics are already present."
+    elif [[ "$(basename "$tool_patch")" == "0037-model-async-file-handles.patch" ]] && \
+         rg -q 'bool synchronous = false;' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'return f->synchronous \? completed : kPending;' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        # Later UC2 file diagnostics extend the same open/transfer blocks, so
+        # Git's whole-patch reverse check no longer recognizes this fix.
+        echo "$(basename "$tool_patch") async handle model is already present (extended by later UC2 file traces)."
     elif [[ "$(basename "$tool_patch")" == "0038-trace-xbox-io-dispatch.patch" ]] && \
          rg -q 'kernel: IofCallDriver device=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
          rg -q 'kernel: IofCompleteRequest irp=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
@@ -173,6 +179,14 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          rg -q 'kernel: IoCreateDevice args=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
         echo "$(basename "$tool_patch") diagnostics are already present."
     elif [[ "$(basename "$tool_patch")" == "0042-trace-uc2-iocreatedevice.patch" ]] && \
+         (cd "$tool_root" && patch --dry-run -p1 -i "$tool_patch" >/dev/null 2>&1); then
+        (cd "$tool_root" && patch -p1 -i "$tool_patch")
+        echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
+    elif [[ "$(basename "$tool_patch")" == "0043-trace-uc2-open-frame-chain.patch" ]] && \
+         rg -q 'void LogUC2GuestFrames\(X86Context& ctx\)' "$tool_root/sdk/runtime/kernel/files.cpp" && \
+         rg -q 'files: UC2 guest frame\[%u\]' "$tool_root/sdk/runtime/kernel/files.cpp"; then
+        echo "$(basename "$tool_patch") guest frame tracing is already present."
+    elif [[ "$(basename "$tool_patch")" == "0043-trace-uc2-open-frame-chain.patch" ]] && \
          (cd "$tool_root" && patch --dry-run -p1 -i "$tool_patch" >/dev/null 2>&1); then
         (cd "$tool_root" && patch -p1 -i "$tool_patch")
         echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
