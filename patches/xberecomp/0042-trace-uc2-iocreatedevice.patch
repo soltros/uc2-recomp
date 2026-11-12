@@ -1,0 +1,11 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -1314,3 +1314,7 @@
+ // I/O manager, not used by the replaced libraries
+ 
+-KERNEL_EXPORT(65, IoCreateDevice, 6) { return kUnsuccessful; }
++KERNEL_EXPORT(65, IoCreateDevice, 6) {
++    LOG_FIRST(64, "kernel: IoCreateDevice args=%08X/%08X/%08X/%08X/%08X/%08X caller=%08X",
++              a[0], a[1], a[2], a[3], a[4], a[5], R32(ctx.esp));
++    return kUnsuccessful;
++}
