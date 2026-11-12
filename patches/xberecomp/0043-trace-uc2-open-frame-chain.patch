@@ -1,0 +1,41 @@
+From: UC2 recomp diagnostics
+Subject: Trace guest frame chain for level package opens
+
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -61,6 +61,19 @@
+     return false;
+ }
+ 
++void LogUC2GuestFrames(X86Context& ctx) {
++    uint32_t frame = ctx.ebp;
++    for (uint32_t depth = 0; depth < 8; ++depth) {
++        if (frame > 0xFFFFFFF7 || !mem::IsCommitted(frame) || !mem::IsCommitted(frame + 4)) break;
++        uint32_t next = R32(frame);
++        uint32_t ret = R32(frame + 4);
++        if (!ret) break;
++        LOGI("files: UC2 guest frame[%u] ebp=%08X return=%08X next=%08X", depth, frame, ret, next);
++        if (next <= frame || next - frame > 0x100000) break;
++        frame = next;
++    }
++}
++
+ // host lookup that ignores case on file systems that do not
+ fs::path MatchCase(const fs::path& dir, const std::vector<std::string>& parts) {
+     fs::path cur = dir;
+@@ -501,6 +514,7 @@
+              name.c_str(), host.c_str(), (unsigned long long)size, R32(handle_out), options,
+              unsigned(f->synchronous));
+         LogGuestStack(ctx, 8);
++        LogUC2GuestFrames(ctx);
+     }
+     LOG_FIRST(400, "open %s", name.c_str());
+     return kSuccess;
+@@ -538,6 +552,7 @@
+              name.c_str(), host.c_str(), (unsigned long long)size, R32(handle_out), options,
+              unsigned(f->synchronous));
+         LogGuestStack(ctx, 8);
++        LogUC2GuestFrames(ctx);
+     }
+     return kSuccess;
+ }
