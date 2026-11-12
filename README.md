@@ -37,7 +37,7 @@ The script configures the project and builds `build-xberecomp/uc2_recomp`. XboxX
 
 The launcher writes a timestamped log to `diagnostic_logs/` and captures a frame every second. It stays open until you close the game window. Set `UC2_XBERECOMP_BIN` to run another executable.
 
-Pressing F3 also captures the current GPU frame and prints guest thread stacks at info level. Error-level entries are reserved for actual faults and failures. Automatic captures avoid the stack dump; use those for routine runs and press F3 when a thread-stack snapshot is useful.
+Pressing F3 also captures the current GPU frame and prints guest thread stacks at info level. Routine loader traces also log stack context at info level; actual crashes and guest traps retain error-level register and stack dumps. Automatic captures avoid the stack dump; use those for routine runs and press F3 when a thread-stack snapshot is useful.
 
 ## ABI and graphics work
 
