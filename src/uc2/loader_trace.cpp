@@ -29,12 +29,16 @@ void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
     if (!ShouldTrace(calls, sample)) return;
 
     uint32_t object = ctx.edi;
-    uint32_t vtable = object <= 0xFFFFFFF7 ? GuestWord(object + 8) : kUnreadable;
+    // At 0x283CC ECX is the interface object and EAX is its vtable pointer.
+    // The interface's first word is itself the vtable; reading +0x14 from
+    // ECX (or object+8) reports an unrelated field, not the call target.
+    uint32_t interface = ctx.ecx;
+    uint32_t vtable = ctx.eax;
     uint32_t method = vtable <= 0xFFFFFFEB ? GuestWord(vtable + 0x14) : kUnreadable;
     uint32_t state10 = object <= 0xFFFFFFEF ? GuestWord(object + 0x10) : kUnreadable;
     uint32_t state14 = object <= 0xFFFFFFEB ? GuestWord(object + 0x14) : kUnreadable;
-    LOGI("UC2 loader method before[%u] object=%08X vtable=%08X method=%08X state10=%08X state14=%08X eax=%08X ecx=%08X",
-         sample, object, vtable, method, state10, state14, ctx.eax, ctx.ecx);
+    LOGI("UC2 loader method before[%u] object=%08X interface=%08X vtable=%08X method=%08X state10=%08X state14=%08X",
+         sample, object, interface, vtable, method, state10, state14);
 }
 
 void UC2_TraceLoaderMethodResult(X86Context& ctx, uint8_t* base) {

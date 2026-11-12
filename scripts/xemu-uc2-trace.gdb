@@ -70,15 +70,16 @@ commands
   continue
 end
 
-# The match loader calls this vtable method at 0x283CC, then checks the
-# object's +0x10 state at 0x283CF. Capture it on both sides to locate the
-# transition relative to package reads and worker completions.
+# At 0x283CC, ECX is the interface object and EAX is the vtable pointer. The
+# indirect target is [EAX+0x14]. The loader then checks object's +0x10 state
+# at 0x283CF. Capture both sides to correlate the call with package reads and
+# worker completions.
 break *0x000283CC
 commands
   silent
   set $uc2_loader_method_calls = $uc2_loader_method_calls + 1
   if $uc2_loader_method_calls <= 16 || $uc2_loader_method_calls % 128 == 0
-    printf "UC2 loader method call[%u] object=%08x vtable=%08x method=%08x state10=%08x state14=%08x\n", $uc2_loader_method_calls, $edi, *(unsigned int*)($edi+8), *(unsigned int*)(*(unsigned int*)($edi+8)+0x14), *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
+    printf "UC2 loader method call[%u] object=%08x interface=%08x vtable=%08x method=%08x state10=%08x state14=%08x\n", $uc2_loader_method_calls, $edi, $ecx, $eax, *(unsigned int*)($eax+0x14), *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
     x/8wx $edi
   end
   continue

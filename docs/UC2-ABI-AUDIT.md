@@ -115,7 +115,7 @@ The paired recomp log `diagnostic_logs/xberecomp_20261111_224832.log` reaches th
 
 The loader-state GDB breakpoints were initially entered as `0x002833CC` and `0x002833CF`, outside the actual guest code addresses. They are corrected in `scripts/xemu-uc2-trace.gdb` to `0x000283CC` and `0x000283CF`; those probes were not active in the completed trace above. A future targeted capture can use them if we need to inspect the guest object's state around its vtable call.
 
-The recomp now uses XboxXBERecomp's instruction-hook API before and after the indirect call at `0x000283CC`. `UC2_TraceLoaderMethod` records the guest object, vtable target, and fields at `+0x10` and `+0x14`; `UC2_TraceLoaderMethodResult` records the return value and those fields again. This will show whether the loader object changes state during the call in the stalled recomp, without changing guest control flow.
+The recomp uses XboxXBERecomp's instruction-hook API before and after the indirect call at `0x000283CC`. At that instruction ECX holds the interface object, EAX holds the vtable pointer loaded from the interface's first word, and the call target is `[EAX+0x14]`. The trace records those values, the guest loader object, and its fields at `+0x10` and `+0x14`; the after-hook records the return value and fields again. The first capture incorrectly treated the interface pointer as the vtable and read `[interface+0x14]`; its logged `method=0x00040001` is not the actual call target and must be disregarded. The corrected trace will show whether the loader object changes state during the call without changing guest control flow.
 
 ## XPP completion-event ABI
 
