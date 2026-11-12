@@ -79,7 +79,7 @@ commands
   silent
   set $uc2_loader_method_calls = $uc2_loader_method_calls + 1
   if $uc2_loader_method_calls <= 16 || $uc2_loader_method_calls % 128 == 0
-    printf "UC2 loader method call[%u] object=%08x interface=%08x vtable=%08x method=%08x state10=%08x state14=%08x\n", $uc2_loader_method_calls, $edi, $ecx, $eax, *(unsigned int*)($eax+0x14), *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
+    printf "UC2 loader method call[%u] object=%08x interface=%08x event=%08x vtable=%08x method=%08x state10=%08x state14=%08x\n", $uc2_loader_method_calls, $edi, $ecx, *(unsigned int*)($ecx+4), $eax, *(unsigned int*)($eax+0x14), *(unsigned int*)($edi+0x10), *(unsigned int*)($edi+0x14)
     x/8wx $edi
   end
   continue
@@ -490,7 +490,7 @@ end
 break *0x002621E7
 commands
   silent
-  printf "UC2 NtCreateFile path input pc=%08x ptr=%08x\n", $eip, $edi
+  printf "UC2 NtCreateFile path input pc=%08x caller=%08x ptr=%08x\n", $eip, *(unsigned int*)($ebp+4), $edi
   if $edi != 0
     x/s $edi
   end
@@ -507,7 +507,7 @@ commands
   set $uc2_open_options = *(unsigned int*)($esp+32)
   set $uc2_open_disposition = *(unsigned int*)($esp+28)
   set $uc2_open_path = *(unsigned int*)($ebp-8)
-  printf "UC2 NtCreateFile args path_ptr=%08x disposition=%08x options=%08x\n", $uc2_open_path, $uc2_open_disposition, $uc2_open_options
+  printf "UC2 NtCreateFile args caller=%08x path_ptr=%08x desired_access=%08x object_attributes=%08x iosb=%08x allocation_size=%08x file_attributes=%08x share_access=%08x disposition=%08x options=%08x\n", *(unsigned int*)($ebp+4), $uc2_open_path, *(unsigned int*)($esp+4), *(unsigned int*)($esp+8), *(unsigned int*)($esp+12), *(unsigned int*)($esp+16), *(unsigned int*)($esp+20), *(unsigned int*)($esp+24), $uc2_open_disposition, $uc2_open_options
   if $uc2_open_path != 0
     x/s $uc2_open_path
   end

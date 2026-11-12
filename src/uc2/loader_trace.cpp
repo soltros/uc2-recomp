@@ -97,10 +97,11 @@ void UC2_TraceLoaderMethod(X86Context& ctx, uint8_t* base) {
     uint32_t interface = ctx.ecx;
     uint32_t vtable = ctx.eax;
     uint32_t method = vtable <= 0xFFFFFFEB ? GuestWord(vtable + 0x14) : kUnreadable;
+    uint32_t event_handle = interface <= 0xFFFFFFFB ? GuestWord(interface + 4) : kUnreadable;
     uint32_t state10 = object <= 0xFFFFFFEF ? GuestWord(object + 0x10) : kUnreadable;
     uint32_t state14 = object <= 0xFFFFFFEB ? GuestWord(object + 0x14) : kUnreadable;
-    LOGI("UC2 loader method before[%u] object=%08X interface=%08X vtable=%08X method=%08X state10=%08X state14=%08X",
-         sample, object, interface, vtable, method, state10, state14);
+    LOGI("UC2 loader method before[%u] object=%08X interface=%08X event=%08X vtable=%08X method=%08X state10=%08X state14=%08X",
+         sample, object, interface, event_handle, vtable, method, state10, state14);
 }
 
 void UC2_TraceLoaderMethodResult(X86Context& ctx, uint8_t* base) {
