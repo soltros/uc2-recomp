@@ -1,0 +1,15 @@
+diff --git a/src/d3d/vulkan_linux.cpp b/src/d3d/vulkan_linux.cpp
+index dd81ede..0000000 100644
+--- a/src/d3d/vulkan_linux.cpp
++++ b/src/d3d/vulkan_linux.cpp
+@@ -1263,6 +1263,10 @@ bool VulkanBackend::PickDevice() {
+     for (VkPhysicalDevice pd : list) {
+         VkPhysicalDeviceProperties p;
+         vkGetPhysicalDeviceProperties(pd, &p);
++        if (p.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) {
++            LOGI("vulkan: skipping CPU Vulkan device %s; UC2 rendering requires a GPU", p.deviceName);
++            continue;
++        }
+         if (p.apiVersion < VK_API_VERSION_1_3) continue;
+         uint32_t en = 0;
+         vkEnumerateDeviceExtensionProperties(pd, nullptr, &en, nullptr);
