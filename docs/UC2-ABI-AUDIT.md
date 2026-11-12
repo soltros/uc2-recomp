@@ -106,6 +106,8 @@ The trace shows the file-I/O transition absent from the recomp run. Xemu first o
 
 Ghidra identifies `FUN_00028300` as the loader thread: it invokes a virtual wait method, calls `FUN_00028410` and `FUN_00028540` while package work remains, then repeats. In `FUN_00028540`, `FUN_00028DC0` checks the package path and `0x00028A61` appends a new path to the pending list. The recomp trace confirms Aqueduct is queued, so the unresolved transition is inside the package processor before it returns to the loader event wait. The existing Xemu run supplies the successful result for comparison; the next recomp run will log the package dispatch gate at `0x289E4` and both branch destinations.
 
+The generated call sequence at `0x2836C` establishes `FUN_00028410`'s machine-level contract: the caller places a pointer to a three-DWORD local result record in EAX, pushes the loader object from EDI as one stack argument, then calls `0x28410`. The callee saves EBX/EBP/ESI/EDI, uses the incoming EAX as that result-record address, obtains the object from the stack argument, restores the saved nonvolatile registers, and returns with `ret 4`. On return, the caller reads `[ESP+0x18]` and only calls `FUN_00028540` when that value is positive. The new hook at `0x28376` captures those three result DWORDs at this decision point. This documents the observed register/stack ABI without assigning a speculative C++ prototype.
+
 The same Xemu trace opens `D:\Textures\Movies\UI_Start_Movie01.xmv`; the previous recomp trace only opened `UC2_Logos.xmv` and `UI_LoadingMovie.xmv`. Keep this startup movie discrepancy separate from the map-I/O divergence.
 
 ### Recomp run held open for 5:29, 2026-11-12 00:44
