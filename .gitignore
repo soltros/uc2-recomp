@@ -35,6 +35,13 @@
 # Per-title analysis output can contain large derived data.
 *_analysis.json
 
+# Local Ghidra project databases contain imported game code and must not be published.
+/uc2.gpr
+/uc2.gpr~
+/uc2.lock
+/uc2.lock~
+/uc2.rep/
+
 # Local runtime diagnostics.
 /xbox_kernel.log
 /diagnostic_logs/
