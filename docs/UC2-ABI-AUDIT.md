@@ -64,6 +64,8 @@ Earlier notes in this audit and the Xemu trace script called this a “match-loa
 
 This narrows the live stall to the guest loader's state transition after the synchronous package checks. It does not show the game issuing the asynchronous package reads seen in the Xemu trace, and the XInput worker events are not a candidate explanation. The 31-draw frame at 45.516s proves the frontend was still rendering then; later frames return to one loading-screen draw. The title has not rendered the Aqueduct scene in the recomp.
 
+The newer run `diagnostic_logs/xberecomp_20261112_000154.log` reproduces the same wait with the newly built executable. It opens `CTF-Aqueduct.lin`, three texture packages, and two sound packages, then queries their sizes; it issues no content reads for those packages before resetting `B0000C40` and waiting again. The Ghidra decompilation identifies `FUN_00028E90` as the cache-copy routine: it reads the source file in 32 KiB chunks with `ReadFile`/`GetOverlappedResult` and writes those chunks to the destination. That routine is now in the guest trace so the next run can tell whether the cache-copy path is entered. The current evidence narrows the problem to a loader/cache decision before that transfer, but does not yet identify which branch or HLE result causes it.
+
 ### What the Xemu trace proves about file I/O
 
 The 22:50 Xemu guest trace logs an asynchronous open of `Z:\System\Script.lin` with options `0x48`, followed by 64 KiB `NtReadFile` calls on handle `0x2C`. Those reads use explicit offsets and return `STATUS_PENDING`. This is a real async package-read path, but the trace does not identify it as `CTF-Aqueduct.lin`; searches of the captured trace contain no Aqueduct map path. The user reached Aqueduct gameplay in that Xemu session, but this log alone does not show which later map/script packages were opened. Do not use these `Script.lin` reads as proof that the Aqueduct map file was read asynchronously.
@@ -79,6 +81,10 @@ The next useful runtime comparison is to capture the actual selected map's open/
 The Xemu screenshot `dev_screenshots/Screenshot_20261111_144334.png` shows the game continuing with “No Profile”, and the user later reached Aqueduct gameplay in Xemu. That demonstrates the game can load a match without creating a profile. The recomp run also reaches mode/arena selection and opens the selected map packages without loading a profile. Therefore auto-creating a profile is not a justified fix for the current loading stall; the stated consequence of skipping it is that game settings are not saved.
 
 The local recomp HDD has a title-specific `.PRO` file from an earlier run, but the 23:45 diagnostic does not show the game opening it. The same log opens `D:\System\PlayerProfile.ini` and `Z:\System\PlayerProfile.ini`, which is configuration lookup and does not prove a saved player profile was loaded. Keep profile creation separate from the map-load investigation unless a new trace shows that profile state gates a loader transition.
+
+### Startup and title-screen movies
+
+The 00:01 recomp run opens `D:\Movies\UC2_Logos.xmv` and `D:\Textures\Movies\UI_LoadingMovie.xmv`, but does not open the title-screen `UI_Start_Movie01.xmv` seen in the Xemu guest trace. The menu video is therefore not reaching the same file-open path in this run. The runtime has Bink pacing wrappers, but repository search found no XMV-specific host decoder; neither observation alone proves the missing movie is caused by decoder support. Keep the title movie's missing open separate from the Aqueduct loader stall until an XMV call/file trace shows where the paths diverge.
 
 ### Offscreen startup run
 
