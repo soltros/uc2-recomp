@@ -18,7 +18,7 @@ uint32_t GuestWord(uint32_t address) {
 
 bool ShouldTrace(std::atomic<uint32_t>& counter, uint32_t& sample) {
     sample = counter.fetch_add(1, std::memory_order_relaxed);
-    return sample < 32 || (sample % 128) == 0;
+    return sample < 32 || (sample % 16) == 0;
 }
 
 void GuestString(uint32_t address, uint8_t* base, char (&out)[256]) {
@@ -36,7 +36,7 @@ void GuestString(uint32_t address, uint8_t* base, char (&out)[256]) {
 
 void TraceLoaderRoutine(const char* name, std::atomic<uint32_t>& calls, X86Context& ctx) {
     uint32_t sample = calls.fetch_add(1, std::memory_order_relaxed);
-    if (sample >= 64 && sample % 128 != 0) return;
+    if (sample >= 64 && sample % 16 != 0) return;
 
     uint32_t return_address = GuestWord(ctx.esp);
     uint32_t stack0 = GuestWord(ctx.esp + 4);
