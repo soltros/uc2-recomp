@@ -160,6 +160,15 @@ for tool_patch in "$repo_root"/patches/xberecomp/*.patch; do
          (cd "$tool_root" && patch --dry-run -p1 -i "$tool_patch" >/dev/null 2>&1); then
         (cd "$tool_root" && patch -p1 -i "$tool_patch")
         echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
+    elif [[ "$(basename "$tool_patch")" == "0041-trace-nt-event-operations.patch" ]] && \
+         rg -q 'kernel: NtCreateEvent handle=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
+         rg -q 'kernel: NtSetEvent handle=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp" && \
+         rg -q 'kernel: NtClearEvent handle=%08X' "$tool_root/sdk/runtime/kernel/xboxkrnl.cpp"; then
+        echo "$(basename "$tool_patch") diagnostics are already present."
+    elif [[ "$(basename "$tool_patch")" == "0041-trace-nt-event-operations.patch" ]] && \
+         (cd "$tool_root" && patch --dry-run -p1 -i "$tool_patch" >/dev/null 2>&1); then
+        (cd "$tool_root" && patch -p1 -i "$tool_patch")
+        echo "Applied $(basename "$tool_patch") to XboxXBERecomp."
     else
         echo "error: cannot apply $(basename "$tool_patch") to $tool_root" >&2
         exit 1

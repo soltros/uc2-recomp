@@ -1,0 +1,25 @@
+--- a/sdk/runtime/kernel/xboxkrnl.cpp
++++ b/sdk/runtime/kernel/xboxkrnl.cpp
+@@ -479,4 +479,7 @@
+     if (!name.empty()) AddNamed(name, o);
+-    W32(a[0], NewHandle(o));
++    uint32_t handle = NewHandle(o);
++    W32(a[0], handle);
++    LOG_FIRST(128, "kernel: NtCreateEvent handle=%08X guest=%08X event_type=%u initial=%u caller=%08X",
++              handle, body, unsigned(a[2]), unsigned(a[3] & 0xFF), R32(ctx.esp));
+     return kSuccess;
+ }
+@@ -487,3 +490,5 @@
+     if (!o) return kInvalidHandle;
+     int32_t prev = SetEvent(*o);
++    LOG_FIRST(256, "kernel: NtSetEvent handle=%08X guest=%08X type=%u previous=%d caller=%08X",
++              a[0], o->guest, unsigned(o->type), prev, R32(ctx.esp));
+     if (a[1]) W32(a[1], uint32_t(prev));
+@@ -495,3 +500,5 @@
+     if (!o) return kInvalidHandle;
+-    ResetEvent(*o);
++    int32_t prev = ResetEvent(*o);
++    LOG_FIRST(256, "kernel: NtClearEvent handle=%08X guest=%08X type=%u previous=%d caller=%08X",
++              a[0], o->guest, unsigned(o->type), prev, R32(ctx.esp));
+     return kSuccess;
+ }
