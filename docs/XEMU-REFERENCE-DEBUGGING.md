@@ -57,6 +57,17 @@ nix shell nixpkgs#gdb -c gdb -q -batch -x scripts/xemu-uc2-trace.gdb 2>&1 \
   | tee "diagnostic_logs/xemu_guest_$(date +%Y%m%d_%H%M%S).log"
 ```
 
+If launching Xemu from the helper fails to initialize SDL, start Xemu from the
+desktop normally, open **Debug → Monitor**, enter `gdbserver`, then run:
+
+```sh
+./scripts/run-xemu-uc2-trace.sh --attach
+```
+
+This attaches the expanded trace to the existing guest debugger without
+relaunching or closing Xemu. The helper runs GDB in batch mode, so it exits
+cleanly when Xemu closes instead of dropping to an interactive GDB prompt.
+
 The GDB script automatically continues after each logged call so you can
 navigate to the same CTF-Aqueduct match. It records the match worker's context
 and handle pair, samples all six raw wait arguments, and traces set, clear, or
