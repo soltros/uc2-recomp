@@ -1,0 +1,45 @@
+diff --git a/sdk/runtime/kernel/files.cpp b/sdk/runtime/kernel/files.cpp
+index fd52ff1..e34ffbb 100644
+--- a/sdk/runtime/kernel/files.cpp
++++ b/sdk/runtime/kernel/files.cpp
+@@ -5,7 +5,6 @@
+ #include <filesystem>
+ #include <fstream>
+ #include <map>
+-#include <unordered_set>
+ 
+ #include "kernel/disc.h"
+ #include "kernel/kernel.h"
+@@ -274,32 +273,6 @@ Target Resolve(const std::string& xbox_path, uint32_t root_handle) {
+         if (const Disc* disc = MountedDisc()) return {{}, true, disc->Find(parts)};
+ 
+     fs::path host = MatchCase(best->second, parts);
+-    if (fs::exists(host)) return {host.string()};
+-
+-    // UC2 stores most map-specific content on the game disc, while its
+-    // mounted HDD image only contains saves and a small set of common files.
+-    // Let static content directories fall through to the disc/extracted game
+-    // tree without redirecting writable HDD paths such as saves and config.
+-    static const std::unordered_set<std::string> disc_content = {
+-        "XBOXMAPS", "XBOXTEXTURES", "SOUNDS", "XBOXANIMATIONS",
+-        "XBOXSTATICMESHES", "XBOXVERTEXSHADERS", "MOVIES", "TEXTURES"};
+-    if (best->first == "\\DEVICE\\HARDDISK0\\PARTITION5" && !parts.empty() &&
+-        disc_content.count(Upper(parts.front()))) {
+-        if (const Disc* disc = MountedDisc()) {
+-            if (const Disc::Entry* entry = disc->Find(parts)) {
+-                LOG_FIRST(64, "files: HDD content fallback to game disc: %s", xbox_path.c_str());
+-                return {{}, true, entry};
+-            }
+-        }
+-        auto cd = g_devices.find(kCdRom);
+-        if (cd != g_devices.end()) {
+-            fs::path extracted = MatchCase(cd->second, parts);
+-            if (fs::exists(extracted)) {
+-                LOG_FIRST(64, "files: HDD content fallback to extracted game files: %s", xbox_path.c_str());
+-                return {extracted.string()};
+-            }
+-        }
+-    }
+     return {host.string()};
+ }
+ 
